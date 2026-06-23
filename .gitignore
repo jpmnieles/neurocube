@@ -1,0 +1,53 @@
+# ==========================================
+# DearPyGui Specific
+# ==========================================
+# DPG saves window positions and layouts here by default
+dpg.ini
+*.ini
+
+# ==========================================
+# Python Core
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ==========================================
+# Virtual Environments
+# ==========================================
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables
+.env
+
+# ==========================================
+# Packaging & Build Artifacts (PyInstaller, etc.)
+# ==========================================
+build/
+dist/
+*.egg-info/
+*.egg
+*.spec
+
+# ==========================================
+# IDEs & Editors
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.pydevproject
+
+# ==========================================
+# OS Specific
+# ==========================================
+.DS_Store
+Thumbs.db
