@@ -75,11 +75,13 @@ class ModelManager:
         worker_id = "EEG"
         print(f'[{worker_id}] Thread Starting')
         is_streaming = False
-        is_connected = False
+        is_initialized = False
         LSL_STREAM_NAME = "Synthetic_Board"
 
         try:
-            # Looping
+            # MNE-LSL Initialization
+            inlet_stream = StreamLSL(bufsize=25,            # 25 secs 
+                                     name=LSL_STREAM_NAME)  # Non-blocking operation
             while True:
 
                 try:
@@ -93,28 +95,24 @@ class ModelManager:
                         
                         elif action == "STOP_STREAM":
                             is_streaming = False
+
                     except queue.Empty:
                         pass
                     except Exception as e:  # TODO: Placeholder for any exception on the functions triggered by the command
                         self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
                                                         message=str(e)).model_dump())
-                    
 
                     # TODO: Move this constant data
                     sampling_rate = 250
                     POLLING_TIME = 1.0/(2.0*sampling_rate)
-                    
 
                     if is_streaming:
-                        
-                        if not is_connected:
-                            # MNE-LSL Initialization
-                            inlet_stream = StreamLSL(bufsize=25,            # 25 secs 
-                                                    name=LSL_STREAM_NAME)  # Non-blocking operation
+
+                        if not is_initialized:
                             inlet_stream.connect(acquisition_delay=None, processing_flags='all')
                             inlet_stream.filter(5.0, 50.0, picks="eeg")  # 4th Order Butterworth Filter  # TODO: Command Filter 
                             inlet_stream.notch_filter(60, picks="eeg")
-                            is_connected = True
+                            is_initialized = True
 
                         inlet_stream.acquire()
                         if inlet_stream.n_new_samples > 0:    
@@ -136,6 +134,11 @@ class ModelManager:
                             print(f'[LSL INLET STREAM] Data In, Time: {datetime.now()}')
                             print(f'[LSL INLET STREAM] timestamps: {timestamps[:10]}')
                     
+                    else:
+
+                        inlet_stream.disconnect()
+                        is_initialized = False
+                    
                     # Throttling to keep CPU usage low
                     time.sleep(POLLING_TIME)           
 
@@ -149,4 +152,5 @@ class ModelManager:
                                             message=str(e)).model_dump())
         
         finally:
-            inlet_stream.disconnect()
+            if is_streaming:
+                inlet_stream.disconnect()
