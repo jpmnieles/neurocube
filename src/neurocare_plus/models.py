@@ -106,18 +106,23 @@ class ModelManager:
                     sampling_rate = 250
                     POLLING_TIME = 1.0/(2.0*sampling_rate)
 
+                    # Connect Once to LSL Stream
+                    if not is_initialized:
+                        inlet_stream.connect(acquisition_delay=None, processing_flags='all')
+                        inlet_stream.filter(5.0, 50.0, picks="eeg")  # 4th Order Butterworth Filter  # TODO: Command Filter 
+                        inlet_stream.notch_filter(60, picks="eeg")
+                        is_initialized = True
+
+                    # Data Ingestion from LSL Stream
+                    new_data = False
+                    inlet_stream.acquire()
+                    if inlet_stream.n_new_samples > 0:    
+                        data, timestamps = inlet_stream.get_data()
+                        new_data = True
+
+                    # Passing Data from LSL Stream to Multithread Queues
                     if is_streaming:
-
-                        if not is_initialized:
-                            inlet_stream.connect(acquisition_delay=None, processing_flags='all')
-                            inlet_stream.filter(5.0, 50.0, picks="eeg")  # 4th Order Butterworth Filter  # TODO: Command Filter 
-                            inlet_stream.notch_filter(60, picks="eeg")
-                            is_initialized = True
-
-                        inlet_stream.acquire()
-                        if inlet_stream.n_new_samples > 0:    
-                            data, timestamps = inlet_stream.get_data()
-                            
+                        if new_data:
                             try:
                                 self.display_queues["EEG_TIME"].put_nowait((data, timestamps))
                             except queue.Full:
@@ -130,14 +135,9 @@ class ModelManager:
                                 dropped_data, dropped_timestamp = self.data_queues["FFT_IN"].get_nowait()
                                 self.data_queues["FFT_IN"].put_nowait((data, timestamps))
 
-
                             print(f'[LSL INLET STREAM] Data In, Time: {datetime.now()}')
-                            print(f'[LSL INLET STREAM] timestamps: {timestamps[:10]}')
-                    
-                    else:
+                            print(f'[LSL INLET STREAM] timestamps: {timestamps[-5:]}')
 
-                        inlet_stream.disconnect()
-                        is_initialized = False
                     
                     # Throttling to keep CPU usage low
                     time.sleep(POLLING_TIME)           
@@ -152,5 +152,4 @@ class ModelManager:
                                             message=str(e)).model_dump())
         
         finally:
-            if is_streaming:
-                inlet_stream.disconnect()
+            inlet_stream.disconnect()

@@ -102,5 +102,5 @@ class UiPresenter:
 
     def btn_stop_eeg_cb(self):
         if 'EEG' in self.cmd_mp_queues:
-            self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='STOP_STREAM').model_dump())
+            # self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='STOP_STREAM').model_dump())  # TODO: Change trigger to connect device button
             self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="STOP_STREAM").model_dump())
