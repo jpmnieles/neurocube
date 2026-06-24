@@ -57,6 +57,7 @@ class UiPresenter:
                 data, timestamps = self.display_queues['EEG_TIME'].get_nowait()
                 new_data = True
                 print(f'[GUI Display] Data In, Time: {datetime.now()}')
+                print(f'[GUI Display] timestamps: {timestamps[-5:]}')
             except queue.Empty:
                 break
 
@@ -69,7 +70,7 @@ class UiPresenter:
                 window_start_time = local_clock()  # Latest time
                 rel_timestamps =  timestamps - window_start_time
 
-                print(f'RELATIVE TIMESTAMP {rel_timestamps[-1]}')
+                print(f'[GUI Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
                 
                 dpg.set_value("Plot_Series_Tag", [rel_timestamps.tolist(), data.tolist()[0]])  # For this example [0] means plotting one channel only
                 dpg.fit_axis_data("y_axis")
