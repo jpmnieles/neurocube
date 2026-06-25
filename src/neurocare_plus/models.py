@@ -76,7 +76,7 @@ class ModelManager:
         print(f'[{worker_id}] Thread Starting')
         is_streaming = False
         is_initialized = False
-        LSL_STREAM_NAME = "Synthetic_Board"
+        LSL_STREAM_NAME = "EEG_Board"
 
         try:
             # MNE-LSL Initialization

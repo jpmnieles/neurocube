@@ -7,7 +7,7 @@ from presenter import UiPresenter
 from processes import eeg_process
 
 
-def main():
+def main(is_demo=True):
     
     # Initialization
     mp.freeze_support()  # To prevent error when building windows app
@@ -23,7 +23,7 @@ def main():
     workers = {
         "EEG": mp.Process(
             target=eeg_process, 
-            args=(cmd_mp_queues["EEG"], status_mp_queue),
+            args=(cmd_mp_queues["EEG"], status_mp_queue, is_demo),
             daemon=True
         )
     }
@@ -87,4 +87,4 @@ def main():
         sys.exit(0)
 
 if __name__ == "__main__":
-    main()
+    main(is_demo=True)
