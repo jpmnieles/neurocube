@@ -9,7 +9,7 @@ class MainView:
         
         ### Themes ###
         with dpg.theme(tag="table_no_pad_theme"):
-            with dpg.theme_component(dpg.mvAll):
+            with dpg.theme_component(dpg.mvTable):
                 # Change the cell padding to [X-axis padding, Y-axis padding]
                 dpg.add_theme_style(dpg.mvStyleVar_CellPadding, 5, 0, category=dpg.mvThemeCat_Core)
 
