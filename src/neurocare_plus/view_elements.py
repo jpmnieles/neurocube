@@ -31,18 +31,6 @@ class DeviceBlock:
             dpg.add_separator()
             dpg.add_spacer(height=5)
 
-    def _on_toggle_click(self, sender, app_data):
-        self.is_connected = not self.is_connected
-        
-        if self.is_connected:
-            dpg.set_value(self.status_text_id, "Connected")
-            dpg.configure_item(self.indicator_id, color=[0, 255, 0, 255], fill=[0, 255, 0, 255])
-            dpg.configure_item(self.button_id, label="Stop Device")
-        else:
-            dpg.set_value(self.status_text_id, "Disconnected")
-            dpg.configure_item(self.indicator_id, color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
-            dpg.configure_item(self.button_id, label="Start Device")
-
 
 class ComboDisplayWidget:
     def __init__(self, combo_item_list=[], widget_list=[], display_tag='', height=0, default_value: str = ''):
