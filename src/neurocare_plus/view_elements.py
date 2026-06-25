@@ -4,33 +4,28 @@ import dearpygui.dearpygui as dpg
 
 class DeviceBlock:
     """A self-contained hardware control component."""
-    def __init__(self, device_name):
+    def __init__(self, device_name, btn_tag):
         self.device_name = device_name
-        self.is_connected = False
-        
-        self.status_text_id = None
-        self.indicator_id = None
-        self.button_id = None
+        self.btn_tag = btn_tag
+        self.status_tag = btn_tag + "_status"
+        self.indicator_tag = btn_tag + "_indicator"
 
     def build(self):
         with dpg.group():
+            # Add text and button
             dpg.add_text(self.device_name, color=[255, 255, 255])
-            
-            self.button_id = dpg.add_button(
-                label="Start Device", 
-                width=120, 
-                callback=self._on_toggle_click
-            )
+            dpg.add_button(label="Start Device", width=-1, tag=self.btn_tag)
             
             # Status indicator placed cleanly beneath the button
             with dpg.group(horizontal=True):
                 # Drawlist height set to 20 to cleanly accommodate center tracking at Y=10
                 with dpg.drawlist(width=16, height=20):
-                    self.indicator_id = dpg.draw_circle(
+                    dpg.draw_circle(
                         center=[8, 10], radius=5, 
-                        color=[128, 128, 128, 255], fill=[128, 128, 128, 255]
+                        color=[128, 128, 128, 255], fill=[128, 128, 128, 255], 
+                        tag=self.indicator_tag
                     )
-                self.status_text_id = dpg.add_text("Disconnected", color=[160, 160, 160])
+                dpg.add_text("Disconnected", color=[160, 160, 160], tag=self.status_tag)
                 
             dpg.add_spacer(height=5)
             dpg.add_separator()

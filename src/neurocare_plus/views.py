@@ -103,9 +103,9 @@ class MenuBar:
 class DevicePanel:
     def __init__(self):
         self.devices = [
-            view_elements.DeviceBlock("OpenBCI EEG"),
-            view_elements.DeviceBlock("Emotibit"),
-            view_elements.DeviceBlock("PBM Module")
+            view_elements.DeviceBlock("OpenBCI EEG", "btn_eeg_device_connect"),
+            view_elements.DeviceBlock("Emotibit", "btn_emotibit_device_connect"),
+            view_elements.DeviceBlock("PBM Module", "btn_pbm_device_connect")
         ]
 
     def build(self):

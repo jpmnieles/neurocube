@@ -23,10 +23,14 @@ class UiPresenter:
         self.ctrl_queues = ctrl_queues
         self.display_queues = display_queues
 
+        # Status Flags
+        self.is_eeg_connected = False
+
     def setup_callbacks(self):
         """Setup Model Callbacks"""
         dpg.set_item_callback("start_stream_btn", self.btn_start_eeg_cb)
         dpg.set_item_callback("stop_stream_btn", self.btn_stop_eeg_cb)
+        dpg.set_item_callback("btn_eeg_device_connect", self.btn_eeg_open_device_cb)
 
     def setup(self):
         # Start the Model Threads
@@ -88,19 +92,41 @@ class UiPresenter:
                 
                 # Set the scroll position to the maximum (bottom)
                 dpg.set_y_scroll("status_window", 999999)
-                
+
+                ### Status Messages ###
+                if status_msg['source'] == "EEG":
+
+                    # Classifying Messages
+                    if status_msg['state'] == "START_STREAM":
+                        self.is_eeg_connected = True
+                    elif status_msg['state'] == "CLOSE_DEVICE":
+                        self.is_eeg_connected = False
+
+                    if self.is_eeg_connected:
+                        dpg.set_value("btn_eeg_device_connect"+"_status", "Connected")
+                        dpg.configure_item("btn_eeg_device_connect"+"_indicator",color=[0, 255, 0, 255], fill=[0, 255, 0, 255])
+                        dpg.configure_item("btn_eeg_device_connect", label="Stop Device")
+                    else:
+                        dpg.set_value("btn_eeg_device_connect"+"_status", "Disconnected")
+                        dpg.configure_item("btn_eeg_device_connect"+"_indicator", color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
+                        dpg.configure_item("btn_eeg_device_connect", label="Start Device")  
+
             except queue.Empty:
                 break  # No more multiprocessing status messages
 
     ### Callbacks ###
     
     def btn_start_eeg_cb(self):
-        if 'EEG' in self.cmd_mp_queues:
-            self.cmd_mp_queues['EEG'].put(CmdMsg(target="EEG", action="OPEN_DEVICE").model_dump())
-            self.cmd_mp_queues['EEG'].put(CmdMsg(target="EEG", action="START_STREAM").model_dump())
-            self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="START_STREAM").model_dump())
+        self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="START_STREAM").model_dump())
 
     def btn_stop_eeg_cb(self):
+        self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="STOP_STREAM").model_dump())
+    
+    def btn_eeg_open_device_cb(self):
         if 'EEG' in self.cmd_mp_queues:
-            # self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='STOP_STREAM').model_dump())  # TODO: Change trigger to connect device button
-            self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="STOP_STREAM").model_dump())
+            if not self.is_eeg_connected:
+                self.cmd_mp_queues['EEG'].put(CmdMsg(target="EEG", action="OPEN_DEVICE").model_dump())
+                self.cmd_mp_queues['EEG'].put(CmdMsg(target="EEG", action="START_STREAM").model_dump())
+            else:
+                self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='STOP_STREAM').model_dump())
+                self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='CLOSE_DEVICE').model_dump())
