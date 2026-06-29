@@ -33,13 +33,22 @@ class StatusMpMsg(BaseModel):
 
 def find_cyton_port():
     """Automatically discover the OpenBCI Cyton USB Dongle serial port."""
+    # Standard FTDI FT230X identifiers used by OpenBCI
+    CYTON_VID = 0x0403
+    CYTON_PID = 0x6015
+
     ports = serial.tools.list_ports.comports()
     for port in ports:
         # OpenBCI dongles typically use FTDI chips (FT231X or similar)
-        # We check the description or manufacturer strings for matches
+        # Checking the description or manufacturer strings for matches
+        
+        # Strategy 1: Check by exact Vendor and Product ID
+        if port.vid == CYTON_VID and port.pid == CYTON_PID:
+            return port.device
+        
+        # Strategy 2: Fallback check for common string identifiers (useful across different OS)
         desc = port.description.lower()
         hwid = port.hwid.lower()
-        
         if "ftdi" in desc or "usb" in desc or "ft231x" in hwid:
             print(f"Found potential OpenBCI Dongle: {port.device} ({port.description})")
             return port.device
@@ -87,7 +96,9 @@ def eeg_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
                     
                     if not is_demo:
                         detected_port = find_cyton_port()
-                        board = BoardShim(BOARD_ID, BrainFlowInputParams(serial_port=detected_port))
+                        params = BrainFlowInputParams()
+                        params.serial_port = detected_port
+                        board = BoardShim(BOARD_ID, params)
                     else:
                         board = BoardShim(BOARD_ID, BrainFlowInputParams())
 
