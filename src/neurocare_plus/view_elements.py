@@ -157,6 +157,8 @@ class EEGPlot:
         self.height = height
         self.parent = parent
 
+        self.eeg_ch_plot = EEGChannelPlot()
+
         self.build()
 
     def build(self):
@@ -190,11 +192,37 @@ class EEGPlot:
             with dpg.plot(height=300, width=-1):
                 
                 # 2. Add the reference X-Axis (Child of the plot)
-                dpg.add_plot_axis(dpg.mvXAxis, label="Time (Seconds)", tag="x_axis")
+                dpg.add_plot_axis(dpg.mvXAxis, label="Time (Seconds)", tag="x_axis2")
                 
                 # 3. Add the reference Y-Axis (Child of the plot)
                 # Note: We capture its returned ID or define a tag to assign the line series parent
-                dpg.add_plot_axis(dpg.mvYAxis, label="Amplitude (Voltage)", tag="y_axis")
+                dpg.add_plot_axis(dpg.mvYAxis, label="Amplitude (Voltage)", tag="y_axis2")
                 
                 # 4. Push data series strictly as a child of the targeted Y-Axis
-                dpg.add_line_series([], [], label="Sensor Alpha", parent="y_axis", tag="Plot_Series_Tag")
+                dpg.add_line_series([], [], label="Sensor Alpha 2", parent="y_axis2", tag="Plot_Series_Tag_2")
+
+
+class EEGChannelPlot:
+    def __init__(self):
+        pass
+
+    def build(self, channel_num, height):
+        x_axis_tag = f"eeg_ch{channel_num}_x_axis"
+        y_axis_tag = f"eeg_ch{channel_num}_y_axis"
+        series_tag = f"eeg_ch{channel_num}_series"
+        plot_tag = f"eeg_ch{channel_num}_plot"
+
+        with dpg.group(horizontal=True):
+            # Left Panel: Clean borderless text controls
+            with dpg.child_window(auto_resize_x=True, height=height, border=False, no_scrollbar=True):
+                dpg.add_text(f"{channel_num}")
+
+            # Right Panel: Plot Viewport Area
+            with dpg.plot(height=100, width=-1, tag=plot_tag):
+                
+                dpg.add_plot_axis(dpg.mvXAxis, tag=x_axis_tag, no_tick_labels=True)
+                dpg.add_plot_axis(dpg.mvYAxis, tag=y_axis_tag)
+                
+                dpg.add_line_series([], [], parent=y_axis_tag, tag=series_tag)
+
+            dpg.bind_item_theme(plot_tag, "plot_theme")
