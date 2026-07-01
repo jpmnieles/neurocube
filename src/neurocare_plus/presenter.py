@@ -78,9 +78,13 @@ class UiPresenter:
                 
                 # Display for 8 Channels
                 for channel_num in range(1,9):
-                    dpg.set_value(f"eeg_ch{channel_num}_series", [rel_timestamps.tolist(), data.tolist()[channel_num-1]])  # For this example [0] means plotting one channel only
-                    dpg.fit_axis_data(f"eeg_ch{channel_num}_y_axis")
-                    dpg.set_axis_limits(f"eeg_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+                    if dpg.get_value(f"en_eeg_ch{channel_num}"):
+                        dpg.configure_item(f"eeg_ch{channel_num}_group_ch_plot", show=True)
+                        dpg.set_value(f"eeg_ch{channel_num}_series", [rel_timestamps.tolist(), data.tolist()[channel_num-1]])  # For this example [0] means plotting one channel only
+                        dpg.fit_axis_data(f"eeg_ch{channel_num}_y_axis")
+                        dpg.set_axis_limits(f"eeg_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+                    else:
+                        dpg.configure_item(f"eeg_ch{channel_num}_group_ch_plot", show=False)
                 
                 dpg.set_axis_limits("global_x_axis", -WINDOW_TIME, 0)
 

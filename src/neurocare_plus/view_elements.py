@@ -165,25 +165,24 @@ class EEGPlot:
         with dpg.child_window(tag=self.tag, border=True, height=self.height, width=-1, parent=self.parent):
 
             # Collapsing Header
-            with dpg.group():
-                with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit, tag="eeg_options_table"):
-                    dpg.add_table_column(width_stretch=True) # Full width for the header
-                    dpg.add_table_column(width_fixed=True)   # Tight fit for the button
-                    dpg.add_table_column(width_fixed=True)
-                    
-                    with dpg.table_row():
-                        # 1st Column
-                        with dpg.collapsing_header(indent=4, label="Channel Options", tag='header_channels'):
-                            with dpg.group(horizontal=True):
-                                for i in range(8):
-                                    dpg.add_checkbox(label=f'Ch{i}', default_value=True)
-                            
-                        # 2nd Column
-                        with dpg.group(horizontal=True, indent=4):
-                            dpg.add_combo(items=["100 uV","200 uV"], default_value="100 uV", tag="combo1", width=70)
+            with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit, tag="eeg_options_table"):
+                dpg.add_table_column(width_stretch=True) # Full width for the header
+                dpg.add_table_column(width_fixed=True)   # Tight fit for the button
+                dpg.add_table_column(width_fixed=True)
+                
+                with dpg.table_row():
+                    # 1st Column
+                    with dpg.collapsing_header(indent=4, label="Channel Options", tag='header_channels'):
+                        with dpg.group(horizontal=True):
+                            for i in range(1,9):
+                                dpg.add_checkbox(label=f'Ch{i}', default_value=True, tag=f"en_eeg_ch{i}")
                         
-                        # 3rd Column
-                        dpg.add_combo(items=["1 sec","5 sec"], default_value="5 sec", tag="combo_time_window", width=70)
+                    # 2nd Column
+                    with dpg.group(horizontal=True, indent=4):
+                        dpg.add_combo(items=["100 uV","200 uV"], default_value="100 uV", tag="combo1", width=70)
+                    
+                    # 3rd Column
+                    dpg.add_combo(items=["1 sec","5 sec"], default_value="5 sec", tag="combo_time_window", width=70)
 
             # Spacer
             dpg.add_spacer(height=1)
