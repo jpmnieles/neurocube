@@ -126,6 +126,7 @@ class ModelManager:
                             try:
                                 self.display_queues["EEG_TIME"].put_nowait((data, timestamps))
                             except queue.Full:
+                                print("[EEG_TIME] Queue Full")
                                 dropped_data, dropped_timestamp = self.display_queues["EEG_TIME"].get_nowait()
                                 self.display_queues["EEG_TIME"].put_nowait((data, timestamps))
                             
