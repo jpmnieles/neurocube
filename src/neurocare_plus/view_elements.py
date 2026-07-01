@@ -188,18 +188,22 @@ class EEGPlot:
             # Spacer
             dpg.add_spacer(height=1)
 
-            # Plotting Start/Stop Stream
-            with dpg.plot(height=300, width=-1):
-                
-                # 2. Add the reference X-Axis (Child of the plot)
-                dpg.add_plot_axis(dpg.mvXAxis, label="Time (Seconds)", tag="x_axis2")
-                
-                # 3. Add the reference Y-Axis (Child of the plot)
-                # Note: We capture its returned ID or define a tag to assign the line series parent
-                dpg.add_plot_axis(dpg.mvYAxis, label="Amplitude (Voltage)", tag="y_axis2")
-                
-                # 4. Push data series strictly as a child of the targeted Y-Axis
-                dpg.add_line_series([], [], label="Sensor Alpha 2", parent="y_axis2", tag="Plot_Series_Tag_2")
+            # Plotting All 8 Channels
+            for i in range(1,9):
+                self.eeg_ch_plot.build(channel_num=i,height=100)
+
+            # Plotting just the Axis
+            with dpg.group(horizontal=True):
+                dpg.add_spacer(width=35)
+
+                with dpg.plot(height=45, width=-1, no_title=True, tag="timeline_plot_widget"):
+                    # X-Axis continuously streaming forward
+                    dpg.add_plot_axis(dpg.mvXAxis, label="Time (seconds)", tag="global_x_axis", no_tick_marks=True)
+                    dpg.add_plot_axis(dpg.mvYAxis, tag="global_y_axis_spacer", no_tick_marks=True, no_tick_labels=True)
+                    dpg.set_axis_limits("global_y_axis_spacer", -150.0, 150.0)
+                    
+                    # Bind transparency layouts to keep workspace completely clean
+                    dpg.bind_item_theme("timeline_plot_widget", "transparent_plot_theme")
 
 
 class EEGChannelPlot:
