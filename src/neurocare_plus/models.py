@@ -80,7 +80,7 @@ class ModelManager:
 
         try:
             # MNE-LSL Initialization
-            inlet_stream = StreamLSL(bufsize=25,            # 25 secs 
+            inlet_stream = StreamLSL(bufsize=20,            # 25 secs 
                                      name=LSL_STREAM_NAME)  # Non-blocking operation
             while True:
 
