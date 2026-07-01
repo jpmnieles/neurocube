@@ -41,7 +41,6 @@ class ModelManager:
         # Display Queues
         self.display_queues = {
             "EEG_TIME": queue.Queue(maxsize=1),
-            "FFT": queue.Queue(),
         }
 
         # Aggregator Queue
