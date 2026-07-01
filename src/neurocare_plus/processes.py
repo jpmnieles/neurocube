@@ -178,7 +178,10 @@ def eeg_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
         del outlet_stream
         if is_streaming:
             board.stop_stream()
-        if board.is_prepared():
-            board.release_session()
+        try:
+            if board.is_prepared():
+                board.release_session()
+        except:
+            pass
         status_queue.put(StatusMpMsg(source=process_id, state="EXIT",
                                    message="Exiting Process").model_dump())
