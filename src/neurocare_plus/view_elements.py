@@ -215,8 +215,9 @@ class EEGChannelPlot:
         y_axis_tag = f"eeg_ch{channel_num}_y_axis"
         series_tag = f"eeg_ch{channel_num}_series"
         plot_tag = f"eeg_ch{channel_num}_plot"
+        group_ch_plot_tag = f"eeg_ch{channel_num}_group_ch_plot"
 
-        with dpg.group(horizontal=True):
+        with dpg.group(horizontal=True, tag=group_ch_plot_tag):
             # Left Panel: Clean borderless text controls
             with dpg.child_window(auto_resize_x=True, height=height, border=False, no_scrollbar=True):
                 dpg.add_text(f"{channel_num}")
