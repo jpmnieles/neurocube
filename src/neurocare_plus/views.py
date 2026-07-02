@@ -24,7 +24,21 @@ class MainView:
                 dpg.add_theme_color(dpg.mvThemeCol_Button, [180, 50, 50, 255])         # Idle Red
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, [210, 70, 70, 255])  # Hover Red
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, [140, 30, 30, 255])   # Click Red
-        
+
+        with dpg.theme(tag="transparent_plot_theme"):
+            with dpg.theme_component(dpg.mvPlot):
+                dpg.add_theme_color(dpg.mvPlotCol_FrameBg, [0, 0, 0, 0], category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_color(dpg.mvPlotCol_PlotBg, [0, 0, 0, 0], category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_color(dpg.mvPlotCol_PlotBorder, [0, 0, 0, 0], category=dpg.mvThemeCat_Plots)
+
+        # Padding for Each EEG Plot
+        with dpg.theme(tag="plot_theme"):
+            with dpg.theme_component(dpg.mvPlot):
+                # Set explicit horizontal and vertical inner padding
+                # This keeps the plot area square/fixed despite label sizes
+                dpg.add_theme_style(dpg.mvPlotStyleVar_PlotPadding, 20, 10, category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_style(dpg.mvPlotStyleVar_LabelPadding, 20, 5, category=dpg.mvThemeCat_Plots)
+            
         # Setup Hidden Staging Window
         self._build_hidden_staging_window()
 
