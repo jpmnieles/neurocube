@@ -158,6 +158,7 @@ class EEGPlot:
         self.parent = parent
 
         self.eeg_ch_plot = EEGChannelPlot()
+        self.en_eeg_ch= {i: EnEEGChannel(channel_num=i) for i in range(1,17)}
 
         self.build()
 
@@ -175,7 +176,10 @@ class EEGPlot:
                     with dpg.collapsing_header(indent=4, label="Channel Options", tag='header_channels'):
                         with dpg.group(horizontal=True):
                             for i in range(1,9):
-                                dpg.add_checkbox(label=f'Ch{i}', default_value=True, tag=f"en_eeg_ch{i}")
+                                self.en_eeg_ch[i].build()
+                        with dpg.group(horizontal=True):
+                            for i in range(9,17):
+                                self.en_eeg_ch[i].build()
                         
                     # 2nd Column
                     with dpg.group(horizontal=True, indent=4):
@@ -230,3 +234,22 @@ class EEGChannelPlot:
                 dpg.add_line_series([], [], parent=y_axis_tag, tag=series_tag)
 
             dpg.bind_item_theme(plot_tag, "plot_theme")
+
+
+class EnEEGChannel:
+    def __init__(self, channel_num):
+        self.channel_num = channel_num
+        self.tag = f"en_eeg_ch{channel_num}"
+        self.group_ch_plot_tag = f"eeg_ch{channel_num}_group_ch_plot"
+
+    def build(self):
+        if self.channel_num < 10:
+            dpg.add_checkbox(label=f' {self.channel_num}', default_value=True, 
+                            callback=self.en_eeg_ch_callback, tag=self.tag)
+        else:
+            dpg.add_checkbox(label=f'{self.channel_num}', default_value=True, 
+                            callback=self.en_eeg_ch_callback, tag=self.tag)
+    
+    def en_eeg_ch_callback(self):
+        en_ch = dpg.get_value(self.tag)
+        dpg.configure_item(self.group_ch_plot_tag, show=en_ch)
