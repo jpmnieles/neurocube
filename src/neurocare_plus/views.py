@@ -1,6 +1,8 @@
 import view_elements
 import dearpygui.dearpygui as dpg
 
+from view_elements import window_resize_handler
+
 
 class MainView:
     def __init__(self):
@@ -36,7 +38,7 @@ class MainView:
             with dpg.theme_component(dpg.mvPlot):
                 # Set explicit horizontal and vertical inner padding
                 # This keeps the plot area square/fixed despite label sizes
-                dpg.add_theme_style(dpg.mvPlotStyleVar_PlotPadding, 20, 10, category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_style(dpg.mvPlotStyleVar_PlotPadding, 5, 5, category=dpg.mvThemeCat_Plots)
                 dpg.add_theme_style(dpg.mvPlotStyleVar_LabelPadding, 20, 5, category=dpg.mvThemeCat_Plots)
             
         # Setup Hidden Staging Window
@@ -57,6 +59,8 @@ class MainView:
         self.monitor_tab = MonitorTab()
         self.eeg_tab = EEGTab()
         self.smartwatch_tab = SmartwatchTab()
+
+        dpg.show_metrics()
 
     def _build_hidden_staging_window(self):
         with dpg.window(tag="hidden_stage", no_move=True, no_resize=True, show=False): 
@@ -91,7 +95,7 @@ class MainView:
         dpg.create_viewport(title='Neuro\u00b3 GUI', width=1920, height=1080)
         dpg.setup_dearpygui()
         dpg.set_primary_window("Main_App_Window", True)
-        dpg.set_viewport_resize_callback(self.window_resize_handler)
+        dpg.set_viewport_resize_callback(window_resize_handler)
         dpg.show_viewport()
 
     def teardown(self):
@@ -102,23 +106,7 @@ class MainView:
     
     def render_gui_frame(self):
         return dpg.render_dearpygui_frame()
-    
-    def window_resize_handler(self):
-        print("[Resize] Window Callback")
 
-        # Monitor Tab Secondary Display
-        parent_height = dpg.get_item_rect_size("monitor_sec_display")[1]
-        
-        # Subtracting height of spacers to prevent scroll bar from appearing.
-        available_height = parent_height - 26
-        
-        # Ensure height doesn't drop below a minimum threshold
-        if available_height > 20:
-            half_height = available_height // 2
-            
-            # Apply the new 50% heights to the exact string tags
-            dpg.configure_item("alpha_display", height=half_height)
-            dpg.configure_item("beta_display", height=half_height)
 
 class MenuBar:
     

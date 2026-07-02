@@ -87,6 +87,11 @@ class ComboDisplayWidget:
         if not source_display_tag == "hidden_stage":
             dpg.set_value(f"combo_{source_display_tag}", self.widget2combo_dict[old_child_tag])
 
+        if (dpg.does_item_exist("monitor_sec_display") 
+            and dpg.does_item_exist("eeg_plots_parent")):
+            dpg.split_frame()
+            window_resize_handler(None, None, None)
+
     def build(self):
         with dpg.child_window(tag=self.display_tag, border=False, height=self.height):
             dpg.add_combo(items=self.combo_item_list, tag=f"combo_{self.display_tag}",
@@ -214,14 +219,15 @@ class EEGPlot:
             dpg.add_spacer(height=1)
 
             # Plotting All 8 Channels
-            for i in range(1,9):
-                self.eeg_ch_plot.build(channel_num=i,height=100)
+            with dpg.child_window(border=False, tag="eeg_plots_parent", height=-45):
+                for i in range(1,9):
+                    self.eeg_ch_plot.build(channel_num=i,height=100)
 
             # Plotting just the Axis
             with dpg.group(horizontal=True):
                 dpg.add_spacer(width=35)
 
-                with dpg.plot(height=45, width=-1, no_title=True, tag="timeline_plot_widget"):
+                with dpg.plot(height=40, width=-1, no_title=True, tag="timeline_plot_widget"):
                     # X-Axis continuously streaming forward
                     dpg.add_plot_axis(dpg.mvXAxis, label="Time (seconds)", tag="global_x_axis", no_tick_marks=True)
                     dpg.add_plot_axis(dpg.mvYAxis, tag="global_y_axis_spacer", no_tick_marks=True, no_tick_labels=True)
@@ -291,3 +297,44 @@ class EnEEGChannel:
     def en_eeg_ch_callback(self):
         en_ch = dpg.get_value(self.tag)
         dpg.configure_item(self.group_ch_plot_tag, show=en_ch)
+        window_resize_handler("None", "None", 53)
+
+
+def window_resize_handler(sender, app_data, user_data):
+    print("[Resize] Window Callback")
+
+    #----- Monitor Tab Secondary Display -----#
+    parent_height = dpg.get_item_rect_size("monitor_sec_display")[1]
+    
+    # Subtracting height of spacers to prevent scroll bar from appearing.
+    available_height = parent_height - 26
+    
+    # Ensure height doesn't drop below a minimum threshold
+    if available_height > 20:
+        half_height = available_height // 2
+        
+        # Apply the new 50% heights to the exact string tags
+        dpg.configure_item("alpha_display", height=half_height)
+        dpg.configure_item("beta_display", height=half_height)
+
+    #----- Monitor Tab Secondary Display -----#
+    eeg_plot_parent_height = dpg.get_item_rect_size("eeg_plots_parent")[1]
+
+    en_spacer = 0
+    if user_data is not None:
+        en_spacer = user_data
+
+    # Subtracting height of spacers to prevent scroll bar from appearing.
+    available_height = eeg_plot_parent_height - 28 + en_spacer
+
+    count = 0
+    for channel_num in range(1,9):
+        if dpg.get_value(f"en_eeg_ch{channel_num}"):
+            count += 1
+
+    if available_height > 20:
+        portion_height = available_height // count
+        
+        for channel_num in range(1,9):
+            if dpg.get_value(f"en_eeg_ch{channel_num}"):
+                dpg.configure_item(f"eeg_ch{channel_num}_group_ch_plot", height=portion_height)
