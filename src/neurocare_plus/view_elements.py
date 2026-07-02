@@ -160,6 +160,14 @@ class EEGPlot:
         self.eeg_ch_plot = EEGChannelPlot()
         self.en_eeg_ch= {i: EnEEGChannel(channel_num=i) for i in range(1,17)}
 
+        self.combo2twindow_dict = {
+            "1 sec": 1,
+            "3 sec": 3,
+            "5 sec": 5,
+            "10 sec": 10,
+            "20 sec": 20,
+        }
+
         self.build()
 
     def build(self):
@@ -186,7 +194,9 @@ class EEGPlot:
                         dpg.add_combo(items=["100 uV","200 uV"], default_value="100 uV", tag="combo1", width=70)
                     
                     # 3rd Column
-                    dpg.add_combo(items=["1 sec","5 sec"], default_value="5 sec", tag="combo_time_window", width=70)
+                    dpg.add_combo(items=["1 sec","3 sec","5 sec","10 sec","20 sec"], 
+                                  default_value="5 sec", tag="combo_time_window", width=70,
+                                  callback=self.time_window_callback)
 
             # Spacer
             dpg.add_spacer(height=1)
@@ -207,6 +217,16 @@ class EEGPlot:
                     
                     # Bind transparency layouts to keep workspace completely clean
                     dpg.bind_item_theme("timeline_plot_widget", "transparent_plot_theme")
+
+            # Default Value Callback
+            self.time_window_callback(None, "5 sec", None)
+
+
+    def time_window_callback(self, sender, app_data, user_data):
+        WINDOW_TIME = self.combo2twindow_dict[app_data]
+        for channel_num in range(1,9):
+            dpg.set_axis_limits(f"eeg_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+        dpg.set_axis_limits("global_x_axis", -WINDOW_TIME, 0)
 
 
 class EEGChannelPlot:
