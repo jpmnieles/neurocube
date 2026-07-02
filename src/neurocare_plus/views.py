@@ -189,9 +189,9 @@ class MonitorTab:
             with dpg.table(header_row=False, policy=dpg.mvTable_SizingStretchProp, 
                            resizable=True, scrollX=True, scrollY=True, height=0, tag='monitor_table'):
                 
-                # Column Width: 65% Primary Display, 35% Secondary Display
-                dpg.add_table_column(init_width_or_weight=0.65)
-                dpg.add_table_column(init_width_or_weight=0.35)
+                # Column Width: 60% Primary Display, 40% Secondary Display
+                dpg.add_table_column(init_width_or_weight=0.60)
+                dpg.add_table_column(init_width_or_weight=0.40)
                 
                 # Insert Table Row
                 with dpg.table_row():
