@@ -186,7 +186,8 @@ class MonitorTab:
                         self.primary_select.build()
                     
                     # COLUMN 2: Secondary Displays
-                    with dpg.child_window(border=False, height=0):
+                    with dpg.child_window(border=False, height=0, no_scrollbar=True,
+                                          tag="monitor_sec_display"):
                         
                         ## Display 2A
                         self.alpha_select.build()
