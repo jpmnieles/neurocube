@@ -66,21 +66,30 @@ class UiPresenter:
                 break
 
             if new_data:
-                # TODO: Add Checkbox Data for enable/disable
-                # TODO: Add get value option for Window Size
-                WINDOW_TIME = 5  # 5 Seconds
-
                 # Relative Timestamps
                 window_start_time = local_clock()  # Latest time
                 rel_timestamps =  timestamps - window_start_time
+                rel_timestamps_list = rel_timestamps.tolist()
+
+                vert_scale = dpg.get_value("combo_vert_scale")
+                is_auto = (vert_scale == 'Auto')
+
+                if is_auto:
+                    window_time_str = dpg.get_value("combo_time_window")
+                    WINDOW_TIME = int(window_time_str.removesuffix(' sec'))
+                    time_mask = timestamps > -WINDOW_TIME
 
                 print(f'[GUI Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
                 
                 # Process only channel which are enabled
                 for channel_num in range(1,9):
                     if dpg.get_value(f"en_eeg_ch{channel_num}"):
-                        dpg.set_value(f"eeg_ch{channel_num}_series", [rel_timestamps.tolist(), data.tolist()[channel_num-1]])  # For this example [0] means plotting one channel only
-                        dpg.fit_axis_data(f"eeg_ch{channel_num}_y_axis")
+                        dpg.set_value(f"eeg_ch{channel_num}_series", [rel_timestamps_list, data[channel_num-1].tolist()])
+
+                        if is_auto:
+                            data_filtered = data[channel_num - 1][time_mask]
+                            dpg.set_axis_limits(f"eeg_ch{channel_num}_y_axis", 
+                                data_filtered.min(), data_filtered.max())
                         
 
     def process_status_mp_queue(self):

@@ -160,6 +160,16 @@ class EEGPlot:
         self.eeg_ch_plot = EEGChannelPlot()
         self.en_eeg_ch= {i: EnEEGChannel(channel_num=i) for i in range(1,17)}
 
+        self.combo2vertscale_dict = {
+            "50 uV": 50,
+            "100 uV": 100,
+            "200 uV": 200,
+            "400 uV": 400,
+            "1000 uV": 1000,
+            "10000 uV": 10000,
+            "Auto": None
+        }
+        
         self.combo2twindow_dict = {
             "1 sec": 1,
             "3 sec": 3,
@@ -191,11 +201,13 @@ class EEGPlot:
                         
                     # 2nd Column
                     with dpg.group(horizontal=True, indent=4):
-                        dpg.add_combo(items=["100 uV","200 uV"], default_value="100 uV", tag="combo1", width=70)
+                        dpg.add_combo(items=["Auto","50 uV","100 uV","200 uV","400 uV","1000 uV","10000 uV"],
+                                      default_value="200 uV", tag="combo_vert_scale", width=80,
+                                      callback=self.vert_scale_callback)
                     
                     # 3rd Column
                     dpg.add_combo(items=["1 sec","3 sec","5 sec","10 sec","20 sec"], 
-                                  default_value="5 sec", tag="combo_time_window", width=70,
+                                  default_value="5 sec", tag="combo_time_window", width=80,
                                   callback=self.time_window_callback)
 
             # Spacer
@@ -219,8 +231,14 @@ class EEGPlot:
                     dpg.bind_item_theme("timeline_plot_widget", "transparent_plot_theme")
 
             # Default Value Callback
+            self.vert_scale_callback(None, "200 uV", None)
             self.time_window_callback(None, "5 sec", None)
 
+    def vert_scale_callback(self, sender, app_data, user_data):
+        VERT_SCALE = self.combo2vertscale_dict[app_data]
+        if VERT_SCALE:
+            for channel_num in range(1,9):
+                dpg.set_axis_limits(f"eeg_ch{channel_num}_y_axis",-VERT_SCALE,VERT_SCALE)
 
     def time_window_callback(self, sender, app_data, user_data):
         WINDOW_TIME = self.combo2twindow_dict[app_data]
