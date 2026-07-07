@@ -30,7 +30,7 @@ class ModelManager:
         # Control Queues
         self.ctrl_queues = {
             "EEG_INLET_FILTER": queue.Queue(),
-            "FFT": queue.Queue()
+            "PPG_INLET": queue.Queue()
         }
 
         # Data Queues
@@ -41,6 +41,7 @@ class ModelManager:
         # Display Queues
         self.display_queues = {
             "EEG_TIME": queue.Queue(maxsize=1),
+            "PPG_TIME": queue.Queue(maxsize=1)
         }
 
         # Aggregator Queue
@@ -51,7 +52,8 @@ class ModelManager:
 
         # Threads
         self.threads = {
-            "EEG": threading.Thread(target=self.eeg_inlet_filter_worker, daemon=True)
+            "EEG": threading.Thread(target=self.eeg_inlet_filter_worker, daemon=True),
+            "PPG": threading.Thread(target=self.ppg_inlet_worker, daemon=True),
         }
 
     def start(self):
@@ -137,6 +139,86 @@ class ModelManager:
 
                             print(f'[LSL INLET STREAM] Data In, Time: {datetime.now()}')
                             print(f'[LSL INLET STREAM] timestamps: {timestamps[-5:]}')
+
+                    
+                    # Throttling to keep CPU usage low
+                    time.sleep(POLLING_TIME)           
+
+                except Exception as e:
+                    self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
+                                                    message=str(e)).model_dump())
+                
+
+        except Exception as e:
+            self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
+                                            message=str(e)).model_dump())
+        
+        finally:
+            inlet_stream.disconnect()
+
+
+    def ppg_inlet_worker(self):
+        # Thread Initialization
+        worker_id = "PPG"
+        print(f'[{worker_id}] Thread Starting')
+        is_streaming = False
+        is_initialized = False
+        LSL_STREAM_NAME = "EMOTIBIT_PPG"
+
+        try:
+            # MNE-LSL Initialization
+            inlet_stream = StreamLSL(bufsize=20,            # 25 secs 
+                                     name=LSL_STREAM_NAME)  # Non-blocking operation
+            while True:
+
+                try:
+                    # Check Control Queue for UI Command
+                    try:
+                        cmd = self.ctrl_queues['PPG_INLET'].get_nowait()
+                        action = cmd.get("action")
+                        
+                        if action == "START_STREAM":  # TODO: Make this a Toggle
+                            is_streaming = True
+                        
+                        elif action == "STOP_STREAM":
+                            is_streaming = False
+
+                    except queue.Empty:
+                        pass
+                    except Exception as e:  # TODO: Placeholder for any exception on the functions triggered by the command
+                        self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
+                                                        message=str(e)).model_dump())
+
+                    # TODO: Move this constant data
+                    sampling_rate = 25
+                    POLLING_TIME = 1.0/(2.0*sampling_rate)
+
+                    # Connect Once to LSL Stream
+                    if not is_initialized:
+                        inlet_stream.connect(acquisition_delay=None, processing_flags='all')
+                        # inlet_stream.filter(5.0, 50.0, picks="ppg")  # 4th Order Butterworth Filter  # TODO: Command Filter 
+                        # inlet_stream.notch_filter(60, picks="ppg")
+                        is_initialized = True
+
+                    # Data Ingestion from LSL Stream
+                    new_data = False
+                    inlet_stream.acquire()
+                    if inlet_stream.n_new_samples > 0:    
+                        data, timestamps = inlet_stream.get_data()
+                        new_data = True
+
+                    # Passing Data from LSL Stream to Multithread Queues
+                    if is_streaming:
+                        if new_data:
+                            try:
+                                self.display_queues["PPG_TIME"].put_nowait((data, timestamps))
+                            except queue.Full:
+                                print("[PPG_TIME] Queue Full")
+                                dropped_data, dropped_timestamp = self.display_queues["EEG_TIME"].get_nowait()
+                                self.display_queues["PPG_TIME"].put_nowait((data, timestamps))
+
+                            print(f'[PPG - LSL INLET STREAM] Data In, Time: {datetime.now()}')
+                            print(f'[PPG - LSL INLET STREAM] timestamps: {timestamps[-5:]}')
 
                     
                     # Throttling to keep CPU usage low
