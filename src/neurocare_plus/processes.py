@@ -6,7 +6,7 @@ from typing import Any, Optional, Dict
 from datetime import datetime
 
 import serial.tools.list_ports
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
+from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds, BrainFlowPresets
 from mne_lsl.lsl import StreamInfo, StreamOutlet
 
 from typing import Literal
@@ -165,6 +165,133 @@ def eeg_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
             
             elif in_impedance_mode:   
                 in_impedance_mode = False  # Trigger only impedance mode one-time
+
+            # Throttling to keep CPU usage low
+            time.sleep(POLLING_TIME) 
+
+
+    except Exception as e:
+        status_queue.put(StatusMpMsg(source=process_id, state="ERROR",
+                                   message=str(e)).model_dump())
+    
+    finally:
+        del outlet_stream
+        if is_streaming:
+            board.stop_stream()
+        try:
+            if board.is_prepared():
+                board.release_session()
+        except:
+            pass
+        status_queue.put(StatusMpMsg(source=process_id, state="EXIT",
+                                   message="Exiting Process").model_dump())
+        
+
+def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
+    # Process Initialization
+    process_id = "EMOTIBIT"
+    print(f'[{process_id}] Process Starting')
+    is_streaming = False
+
+    try:
+        # Brainflow Initialization
+        if not is_demo: 
+            BOARD_ID = BoardIds.EMOTIBIT_BOARD.value
+            AUX_SAMPLING_RATE = BoardShim.get_sampling_rate(BOARD_ID, BrainFlowPresets.AUXILIARY_PRESET)
+            PPG_CHANNELS = BoardShim.get_ppg_channels(BOARD_ID, BrainFlowPresets.AUXILIARY_PRESET)
+            NUM_PPG_CH = len(PPG_CHANNELS)
+
+        else:
+            BOARD_ID = BoardIds.SYNTHETIC_BOARD.value
+            AUX_SAMPLING_RATE = BoardShim.get_sampling_rate(BOARD_ID)
+            PPG_CHANNELS = BoardShim.get_eeg_channels(BOARD_ID)[:3]
+            NUM_PPG_CH = len(PPG_CHANNELS)
+                                            
+        # Initialization
+        CHUNK_SIZE = 2
+        POLLING_TIME = 1.0/100  # Make it 100 Hz first for max PPG sampling rate
+
+        # MNE-LSL Initialization
+        LSL_STREAM_NAME = "EMOTIBIT_PPG"
+        info_ppg = StreamInfo(LSL_STREAM_NAME, "PPG", NUM_PPG_CH, AUX_SAMPLING_RATE, "float32", "emotibit_ppg")
+        info_ppg.set_channel_names(["PPG_Red", "PPG_IR", "PPG_Green"])
+        outlet_stream = StreamOutlet(info_ppg)
+        
+        while True:
+            try:
+                cmd = cmd_queue.get_nowait()
+                action = cmd.get("action")
+
+                ### Device Commands ###
+                if action == "OPEN_DEVICE":
+                    
+                    if not is_demo:
+                        params = BrainFlowInputParams()
+                        params.ip_address = "10.2.120.66"  # IP Address is Varying
+                        params.ip_port = 3133
+                        board = BoardShim(BOARD_ID, params)
+                    else:
+                        params = BrainFlowInputParams()
+                        params.mac_address = "2"
+                        board = BoardShim(BOARD_ID, params)
+
+                    if not board.is_prepared():
+                        board.prepare_session()
+                        status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                
+                elif action == "CLOSE_DEVICE":
+                    board.release_session()
+                    is_streaming = False
+                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                
+                elif action == "START_STREAM":
+                    board.start_stream()
+                    is_streaming = True
+                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                
+                elif action == "STOP_STREAM":
+                    board.stop_stream()
+                    is_streaming = False
+                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                
+                elif action == "START_RECORD":
+                    now = datetime.now()
+                    timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+                    filename = f"brainflow_raw_{timestamp}.csv"
+                    board.start_stream(f"file://raw/{filename}:w")  # Saving to a file
+                    is_streaming = True
+                    in_impedance_mode = False
+                    status_queue.put(StatusMpMsg(source=process_id, state=action,
+                                               message=f"Raw data streaming at {filename}").model_dump())
+                
+                elif action == "STOP_RECORD":
+                    board.stop_stream()
+                    is_streaming = False
+                    status_queue.put(StatusMpMsg(source=process_id, state=action,
+                                               message=f"Raw data saved at {filename}").model_dump())
+                    
+                elif action == "IMPEDANCE_MODE":
+                    is_streaming = False
+                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+
+                elif action == "EXIT":
+                    break
+                    
+            except queue.Empty:
+                pass
+
+            except Exception as e:
+                status_queue.put(StatusMpMsg(source=process_id, state="ERROR",
+                                        message=str(e)).model_dump())
+
+            # Data Ingestion and Streaming Modes
+            if is_streaming:  # Mode
+                if board.get_board_data_count() >= CHUNK_SIZE:
+                    data = board.get_board_data(preset=BrainFlowPresets.AUXILIARY_PRESET)  # Get data from Brainflow hardware. With flushing (destructive read)
+                    ppg_data = np.ascontiguousarray(data[PPG_CHANNELS].T.astype(np.float32, copy=False))
+                    outlet_stream.push_chunk(ppg_data)  # Pushing Chunk Size Data to LSL Network
+                    # print(ppg_data)
+
 
             # Throttling to keep CPU usage low
             time.sleep(POLLING_TIME) 
