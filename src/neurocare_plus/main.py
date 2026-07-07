@@ -4,7 +4,7 @@ import multiprocessing as mp
 from models import ModelManager
 from views import MainView
 from presenter import UiPresenter
-from processes import eeg_process
+from processes import eeg_process, emotibit_process
 
 
 def main(is_demo=True):
@@ -24,6 +24,11 @@ def main(is_demo=True):
         "EEG": mp.Process(
             target=eeg_process, 
             args=(cmd_mp_queues["EEG"], status_mp_queue, is_demo),
+            daemon=True
+        ),
+        "EMOTIBIT": mp.Process(
+            target=emotibit_process, 
+            args=(cmd_mp_queues["EMOTIBIT"], status_mp_queue, is_demo),
             daemon=True
         )
     }
