@@ -8,7 +8,7 @@ from models import CtrlMsg
 from views import MainView
 from processes import CmdMsg
 
-from view_elements import EEGPlot, PPGPlot
+from widgets import EEGPlot, PPGPlot
 
 
 class UiPresenter:
