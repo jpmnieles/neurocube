@@ -83,6 +83,9 @@ class ModelManager:
             # MNE-LSL Initialization
             inlet_stream = StreamLSL(bufsize=20,            # 25 secs 
                                      name=LSL_STREAM_NAME)  # Non-blocking operation
+            sampling_rate = 250  # Change to 125 Hz when EEG is 16 channels
+            POLLING_TIME = 1.0/(2.0*sampling_rate)
+            
             while True:
 
                 try:
@@ -102,10 +105,6 @@ class ModelManager:
                     except Exception as e:  # TODO: Placeholder for any exception on the functions triggered by the command
                         self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
                                                         message=str(e)).model_dump())
-
-                    # TODO: Move this constant data
-                    sampling_rate = 250
-                    POLLING_TIME = 1.0/(2.0*sampling_rate)
 
                     # Connect Once to LSL Stream
                     if not is_initialized:
@@ -169,6 +168,9 @@ class ModelManager:
             # MNE-LSL Initialization
             inlet_stream = StreamLSL(bufsize=20,            # 25 secs 
                                      name=LSL_STREAM_NAME)  # Non-blocking operation
+            sampling_rate = 25  # Change to 100 Hz when PPG is already configured
+            POLLING_TIME = 1.0/(2.0*sampling_rate)
+
             while True:
 
                 try:
@@ -188,10 +190,6 @@ class ModelManager:
                     except Exception as e:  # TODO: Placeholder for any exception on the functions triggered by the command
                         self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
                                                         message=str(e)).model_dump())
-
-                    # TODO: Move this constant data
-                    sampling_rate = 25
-                    POLLING_TIME = 1.0/(2.0*sampling_rate)
 
                     # Connect Once to LSL Stream
                     if not is_initialized:
