@@ -77,7 +77,7 @@ class UiPresenter:
                 if is_auto:
                     window_time_str = dpg.get_value("combo_time_window")
                     WINDOW_TIME = int(window_time_str.removesuffix(' sec'))
-                    time_mask = timestamps > -WINDOW_TIME
+                    time_mask = rel_timestamps > -WINDOW_TIME
 
                 print(f'[GUI Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
                 
