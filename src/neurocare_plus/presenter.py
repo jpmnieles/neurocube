@@ -81,7 +81,7 @@ class UiPresenter:
 
                 if is_auto:
                     window_time_str = dpg.get_value("combo_time_window")
-                    WINDOW_TIME = int(window_time_str.removesuffix(' sec'))
+                    WINDOW_TIME = EEGPlot.combo2twindow_dict[window_time_str]
                     time_mask = rel_timestamps > -WINDOW_TIME
 
                 print(f'[GUI Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')

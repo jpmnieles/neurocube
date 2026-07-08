@@ -153,6 +153,25 @@ class DynamicPlot:
 
 
 class EEGPlot:
+
+    combo2vertscale_dict = {
+        "50 uV": 50,
+        "100 uV": 100,
+        "200 uV": 200,
+        "400 uV": 400,
+        "1000 uV": 1000,
+        "10000 uV": 10000,
+        "Auto": None
+    }
+        
+    combo2twindow_dict = {
+        "1 sec": 1,
+        "3 sec": 3,
+        "5 sec": 5,
+        "10 sec": 10,
+        "20 sec": 20,
+    }
+
     def __init__(self, tag, default_sensor="EEG", height=-1, parent=0):
         self.tag = tag
         self.sensor_type = default_sensor
