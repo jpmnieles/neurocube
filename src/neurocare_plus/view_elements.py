@@ -297,10 +297,114 @@ class EnEEGChannel:
         window_resize_handler("None", "None", 53)
 
 
+class PPGPlot:
+
+    combo2vertscale_dict = {
+        "50 uV": 50,
+        "100 uV": 100,
+        "200 uV": 200,
+        "400 uV": 400,
+        "1000 uV": 1000,
+        "10000 uV": 10000,
+        "Auto": None
+    }
+        
+    combo2twindow_dict = {
+        "1 sec": 1,
+        "3 sec": 3,
+        "5 sec": 5,
+        "10 sec": 10,
+        "20 sec": 20,
+    }
+
+    def __init__(self, tag, default_sensor="PPG", height=-1, parent=0):  # There should be number of channels in init
+        self.tag = tag
+        self.height = height
+        self.parent = parent
+
+        self.ppg_ch_plot = PPGChannelPlot()
+
+        self.build()
+
+    def build(self):
+        with dpg.child_window(tag=self.tag, border=True, height=self.height, width=-1, parent=self.parent):
+
+            # Collapsing Header
+            with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit, tag="ppg_options_table"):
+                dpg.add_table_column(width_stretch=True) # Full width for the header
+                dpg.add_table_column(width_fixed=True)   # Tight fit for the button
+                dpg.add_table_column(width_fixed=True)
+                
+                with dpg.table_row():
+                    # 1st Column
+                    dpg.add_spacer(height=1)
+                        
+                    # 2nd Column
+                    with dpg.group(horizontal=True, indent=4):
+                        dpg.add_combo(items=["Auto","50 uV","100 uV","200 uV","400 uV","1000 uV","10000 uV"],
+                                      default_value="Auto", tag="combo_ppg_vert_scale", width=80,
+                                      callback=self.vert_scale_callback)
+                    
+                    # 3rd Column
+                    dpg.add_combo(items=["1 sec","3 sec","5 sec","10 sec","20 sec"], 
+                                  default_value="5 sec", tag="combo_ppg_time_window", width=80,
+                                  callback=self.time_window_callback)
+
+            # Spacer
+            dpg.add_spacer(height=1)
+
+            # Plotting All 3 Channels
+            with dpg.child_window(border=False, tag="ppg_plots_parent", height=-45):
+                for i in range(1,4):
+                    self.ppg_ch_plot.build(channel_num=i,height=100)
+
+            # Default Value Callback
+            self.vert_scale_callback(None, "Auto", None)
+            self.time_window_callback(None, "5 sec", None)
+
+    def vert_scale_callback(self, sender, app_data, user_data):
+        VERT_SCALE = self.combo2vertscale_dict[app_data]
+        if VERT_SCALE:
+            for channel_num in range(1,4):
+                dpg.set_axis_limits(f"ppg_ch{channel_num}_y_axis",-VERT_SCALE,VERT_SCALE)
+
+    def time_window_callback(self, sender, app_data, user_data):
+        WINDOW_TIME = self.combo2twindow_dict[app_data]
+        for channel_num in range(1,4):
+            dpg.set_axis_limits(f"ppg_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+
+
+class PPGChannelPlot:
+    def __init__(self):
+        pass
+
+    def build(self, channel_num, height):
+        x_axis_tag = f"ppg_ch{channel_num}_x_axis"
+        y_axis_tag = f"ppg_ch{channel_num}_y_axis"
+        series_tag = f"ppg_ch{channel_num}_series"
+        plot_tag = f"ppg_ch{channel_num}_plot"
+        group_ch_plot_tag = f"ppg_ch{channel_num}_group_ch_plot"
+
+        with dpg.group(horizontal=True, tag=group_ch_plot_tag):
+            # Left Panel: Clean borderless text controls
+            with dpg.child_window(auto_resize_x=True, height=height, border=False, no_scrollbar=True):
+                dpg.add_text(f"{channel_num}")
+
+            # Right Panel: Plot Viewport Area
+            with dpg.plot(height=100, width=-1, tag=plot_tag):
+                
+                dpg.add_plot_axis(dpg.mvXAxis, tag=x_axis_tag, no_tick_labels=True)
+                dpg.add_plot_axis(dpg.mvYAxis, tag=y_axis_tag)
+                
+                dpg.add_line_series([], [], parent=y_axis_tag, tag=series_tag)
+
+            dpg.bind_item_theme(plot_tag, "plot_theme")
+
+
 def window_resize_handler(sender, app_data, user_data):
     print("[Resize] Window Callback")
 
-    #----- Monitor Tab Secondary Display -----#
+    #----- Monitor Tab Secondary Display (For Alpha and Beta Displays) -----#
     parent_height = dpg.get_item_rect_size("monitor_sec_display")[1]
     
     # Subtracting height of spacers to prevent scroll bar from appearing.

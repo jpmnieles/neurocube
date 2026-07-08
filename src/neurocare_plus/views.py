@@ -47,8 +47,8 @@ class MainView:
         # Initialize Widgets
         self.primary_plot = view_elements.EEGPlot("EEG_widget", "EEG",   # Any Widget Plots
                                                       height=0, parent="hidden_stage")  
-        self.alpha_plot = view_elements.DynamicPlot("PPG_widget", "PPG", 
-                                                    height=0, parent="hidden_stage")  # TODO: Change to dynamic 50% of the height
+        self.alpha_plot = view_elements.PPGPlot("PPG_widget", "PPG", 
+                                                    height=0, parent="hidden_stage")
         self.beta_plot = view_elements.DynamicPlot("IMU_widget", "IMU", 
                                                    height=0, parent="hidden_stage")
         

@@ -8,6 +8,8 @@ from models import CtrlMsg
 from views import MainView
 from processes import CmdMsg
 
+from view_elements import EEGPlot, PPGPlot
+
 
 class UiPresenter:
     def __init__(self, model: ModelManager, view: MainView,
@@ -25,12 +27,14 @@ class UiPresenter:
 
         # Status Flags
         self.is_eeg_connected = False
+        self.is_emotibit_connected = False
 
     def setup_callbacks(self):
         """Setup Model Callbacks"""
-        dpg.set_item_callback("start_stream_btn", self.btn_start_eeg_cb)
-        dpg.set_item_callback("stop_stream_btn", self.btn_stop_eeg_cb)
+        dpg.set_item_callback("start_stream_btn", self.btn_start_stream_cb)
+        dpg.set_item_callback("stop_stream_btn", self.btn_stop_stream_cb)
         dpg.set_item_callback("btn_eeg_device_connect", self.btn_eeg_open_device_cb)
+        dpg.set_item_callback("btn_emotibit_device_connect", self.btn_emotibit_open_device_cb)
 
     def setup(self):
         # Start the Model Threads
@@ -51,6 +55,7 @@ class UiPresenter:
             # Thread Functions
             self.process_status_mp_queue()
             self.process_eeg_time_series_widget()
+            self.process_ppg_time_series_widget()
             
             dpg.render_dearpygui_frame()  # Throttling based on the Monitor Refresh Rate
 
@@ -90,6 +95,44 @@ class UiPresenter:
                             data_filtered = data[channel_num - 1][time_mask]
                             dpg.set_axis_limits(f"eeg_ch{channel_num}_y_axis", 
                                 data_filtered.min(), data_filtered.max())
+                            
+    def process_ppg_time_series_widget(self):
+        while True:
+            new_data = False
+            try:
+                data, timestamps = self.display_queues['PPG_TIME'].get_nowait()
+                new_data = True
+                print(f'[GUI PPG Display] Data In, Time: {datetime.now()}')
+                print(f'[GUI PPG Display] timestamps: {timestamps[-5:]}')
+            except queue.Empty:
+                break
+
+            if new_data:
+                # Relative Timestamps
+                window_start_time = local_clock()  # Latest time
+                rel_timestamps =  timestamps - window_start_time
+                rel_timestamps_list = rel_timestamps.tolist()
+
+                vert_scale = dpg.get_value("combo_ppg_vert_scale")  # Should be ppg
+                is_auto = (vert_scale == 'Auto')
+
+                if is_auto:
+                    window_time_str = dpg.get_value("combo_ppg_time_window")  # Should be ppg
+                    WINDOW_TIME = PPGPlot.combo2twindow_dict[window_time_str]
+                    time_mask = rel_timestamps > -WINDOW_TIME
+
+                print(f'[GUI PPG Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
+
+
+                # Process only channel which are enabled
+                # print("[GUI PPG Display] Data Shape:", data.shape)
+                for channel_num in range(1,4):
+                    dpg.set_value(f"ppg_ch{channel_num}_series", [rel_timestamps_list, data[channel_num-1].tolist()])
+
+                    if is_auto:
+                        data_filtered = data[channel_num - 1][time_mask]
+                        dpg.set_axis_limits(f"ppg_ch{channel_num}_y_axis", 
+                            data_filtered.min(), data_filtered.max())
                         
 
     def process_status_mp_queue(self):
@@ -121,18 +164,40 @@ class UiPresenter:
                     else:
                         dpg.set_value("btn_eeg_device_connect"+"_status", "Disconnected")
                         dpg.configure_item("btn_eeg_device_connect"+"_indicator", color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
-                        dpg.configure_item("btn_eeg_device_connect", label="Start Device")  
+                        dpg.configure_item("btn_eeg_device_connect", label="Start Device")
+                
+                ### Status Messages ###
+                if status_msg['source'] == "EMOTIBIT":
+
+                    # Classifying Messages
+                    if status_msg['state'] == "START_STREAM":
+                        self.is_emotibit_connected = True
+                    elif status_msg['state'] == "CLOSE_DEVICE":
+                        self.is_emotibit_connected = False
+
+                    if self.is_emotibit_connected:
+                        dpg.set_value("btn_emotibit_device_connect"+"_status", "Connected")
+                        dpg.configure_item("btn_emotibit_device_connect"+"_indicator",color=[0, 255, 0, 255], fill=[0, 255, 0, 255])
+                        dpg.configure_item("btn_emotibit_device_connect", label="Stop Device")
+                    else:
+                        dpg.set_value("btn_emotibit_device_connect"+"_status", "Disconnected")
+                        dpg.configure_item("btn_emotibit_device_connect"+"_indicator", color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
+                        dpg.configure_item("btn_emotibit_device_connect", label="Start Device")
 
             except queue.Empty:
                 break  # No more multiprocessing status messages
 
     ### Callbacks ###
     
-    def btn_start_eeg_cb(self):
+    def btn_start_stream_cb(self):
+        print("[GUI] Clicked Start Stream")
         self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="START_STREAM").model_dump())
+        self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action="START_STREAM").model_dump())
 
-    def btn_stop_eeg_cb(self):
+    def btn_stop_stream_cb(self):
+        print("[GUI] Clicked Stop Stream")
         self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="STOP_STREAM").model_dump())
+        self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action="STOP_STREAM").model_dump())
     
     def btn_eeg_open_device_cb(self):
         if 'EEG' in self.cmd_mp_queues:
@@ -142,3 +207,12 @@ class UiPresenter:
             else:
                 self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='STOP_STREAM').model_dump())
                 self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='CLOSE_DEVICE').model_dump())
+    
+    def btn_emotibit_open_device_cb(self):
+        if 'EMOTIBIT' in self.cmd_mp_queues:
+            if not self.is_emotibit_connected:
+                self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target="EMOTIBIT", action="OPEN_DEVICE").model_dump())
+                self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target="EMOTIBIT", action="START_STREAM").model_dump())
+            else:
+                self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target='EMOTIBIT', action='STOP_STREAM').model_dump())
+                self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target='EMOTIBIT', action='CLOSE_DEVICE').model_dump())
