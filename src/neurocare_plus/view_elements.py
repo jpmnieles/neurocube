@@ -172,9 +172,8 @@ class EEGPlot:
         "20 sec": 20,
     }
 
-    def __init__(self, tag, default_sensor="EEG", height=-1, parent=0):
+    def __init__(self, tag, parent=0, height=0):
         self.tag = tag
-        self.sensor_type = default_sensor
         self.height = height
         self.parent = parent
 
@@ -336,7 +335,7 @@ class PPGPlot:
         "20 sec": 20,
     }
 
-    def __init__(self, tag, default_sensor="PPG", height=-1, parent=0):  # There should be number of channels in init
+    def __init__(self, tag, parent=0, height=0):  # There should be number of channels in init
         self.tag = tag
         self.height = height
         self.parent = parent

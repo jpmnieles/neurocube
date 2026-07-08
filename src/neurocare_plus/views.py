@@ -2,6 +2,7 @@ import view_elements
 import dearpygui.dearpygui as dpg
 
 from view_elements import window_resize_handler
+from widgets import WidgetManager
 
 
 class MainView:
@@ -41,16 +42,8 @@ class MainView:
                 dpg.add_theme_style(dpg.mvPlotStyleVar_PlotPadding, 5, 5, category=dpg.mvThemeCat_Plots)
                 dpg.add_theme_style(dpg.mvPlotStyleVar_LabelPadding, 20, 5, category=dpg.mvThemeCat_Plots)
             
-        # Setup Hidden Staging Window
-        self._build_hidden_staging_window()
-
-        # Initialize Widgets
-        self.primary_plot = view_elements.EEGPlot("EEG_widget", "EEG",   # Any Widget Plots
-                                                      height=0, parent="hidden_stage")  
-        self.alpha_plot = view_elements.PPGPlot("PPG_widget", "PPG", 
-                                                    height=0, parent="hidden_stage")
-        self.beta_plot = view_elements.DynamicPlot("IMU_widget", "IMU", 
-                                                   height=0, parent="hidden_stage")
+        # Setup Wifgets
+        self.widgets = WidgetManager()
         
         # View Components
         self.menu_bar = MenuBar()
@@ -61,10 +54,6 @@ class MainView:
         self.smartwatch_tab = SmartwatchTab()
 
         dpg.show_metrics()
-
-    def _build_hidden_staging_window(self):
-        with dpg.window(tag="hidden_stage", no_move=True, no_resize=True, show=False): 
-            pass
     
     def build(self):
         # Main Window
