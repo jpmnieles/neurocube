@@ -166,14 +166,12 @@ class MonitorTab:
         self.primary_select = view_elements.ComboDisplayWidget(
             combo_item_list=['EEG','PPG','IMU'],
             widget_list=['EEG_widget','PPG_widget','IMU_widget'],
-            display_tag='primary_display',
-            default_value='EEG'
+            display_tag='primary_display'
         )
         self.alpha_select = view_elements.ComboDisplayWidget(
             combo_item_list=['EEG','PPG','IMU'],
             widget_list=['EEG_widget','PPG_widget','IMU_widget'],
-            display_tag='alpha_display',
-            height=420
+            display_tag='alpha_display'
         )
         self.beta_select = view_elements.ComboDisplayWidget(
             combo_item_list=['EEG','PPG','IMU'],
@@ -199,17 +197,18 @@ class MonitorTab:
                 with dpg.table_row():
                     
                     # COLUMN 1: Primary Display
-                    with dpg.child_window(border=False, height=0):
+                    with dpg.child_window(border=False, height=0, tag="primary_display"):
 
                         ## Display 1
-                        self.primary_select.build()
+                        self.primary_select.build('EEG')
                     
                     # COLUMN 2: Secondary Displays
                     with dpg.child_window(border=False, height=0, no_scrollbar=True,
                                           tag="monitor_sec_display"):
                         
                         ## Display 2A
-                        self.alpha_select.build()
+                        with dpg.child_window(border=False, height=420, tag="alpha_display"):
+                            self.alpha_select.build('PPG')
                         
                         ## Separator
                         dpg.add_spacer(height=5)
@@ -217,7 +216,8 @@ class MonitorTab:
                         dpg.add_spacer(height=5)
                         
                         ## Display 2B
-                        self.beta_select.build()
+                        with dpg.child_window(border=False, height=0, tag="beta_display"):
+                            self.beta_select.build()
 
             # Bind the theme
             dpg.bind_item_theme("monitor_table", "table_no_pad_theme")

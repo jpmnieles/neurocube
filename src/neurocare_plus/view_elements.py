@@ -33,14 +33,12 @@ class DeviceBlock:
 
 
 class ComboDisplayWidget:
-    def __init__(self, combo_item_list=[], widget_list=[], display_tag='', height=0, default_value: str = ''):
+    def __init__(self, combo_item_list=[], widget_list=[], display_tag=''):
         self.combo_item_list = combo_item_list
         self.widget_list = widget_list
         self.display_tag = display_tag
         self.combo2widget_dict = self._make_combo2widget_map(combo_item_list, widget_list)
         self.widget2combo_dict = self._make_widget2combo_map(widget_list, combo_item_list)
-        self.height = height
-        self.default_value = default_value
 
     def _make_combo2widget_map(self, combo_item_list, widget_list):
         map_dict = dict(zip(combo_item_list, widget_list))
@@ -92,13 +90,12 @@ class ComboDisplayWidget:
             dpg.split_frame()
             window_resize_handler(None, None, None)
 
-    def build(self):
-        with dpg.child_window(tag=self.display_tag, border=False, height=self.height):
-            dpg.add_combo(items=self.combo_item_list, tag=f"combo_{self.display_tag}",
-                          callback=self.dropdown_callback, user_data=self.display_tag, 
-                          default_value=self.default_value, width=200)
-        if self.default_value:
-            self.dropdown_callback(f"combo_{self.display_tag}", self.default_value, self.display_tag)
+    def build(self, default_value=''):
+        dpg.add_combo(items=self.combo_item_list, tag=f"combo_{self.display_tag}",
+                        callback=self.dropdown_callback, user_data=self.display_tag, 
+                        default_value=default_value, width=200)
+        if default_value:
+            self.dropdown_callback(f"combo_{self.display_tag}", default_value, self.display_tag)
 
 
 class DynamicPlot:
