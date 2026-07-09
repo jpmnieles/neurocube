@@ -123,6 +123,8 @@ class EEGPlot:
         if VERT_SCALE:
             for channel_num in range(1,9):
                 dpg.set_axis_limits(f"eeg_ch{channel_num}_y_axis",-VERT_SCALE,VERT_SCALE)
+                dpg.configure_item(f"eeg_ch{channel_num}_max_y_axis", label=f"{VERT_SCALE}")
+                dpg.configure_item(f"eeg_ch{channel_num}_min_y_axis", label=f"{-VERT_SCALE}")
 
     def time_window_callback(self, sender, app_data, user_data):
         WINDOW_TIME = self.combo2twindow_dict[app_data]
@@ -204,6 +206,8 @@ class PPGPlot:
         if VERT_SCALE:
             for channel_num in range(1,4):
                 dpg.set_axis_limits(f"ppg_ch{channel_num}_y_axis",-VERT_SCALE,VERT_SCALE)
+                dpg.configure_item(f"ppg_ch{channel_num}_max_y_axis", label=f"{VERT_SCALE}")
+                dpg.configure_item(f"ppg_ch{channel_num}_min_y_axis", label=f"{-VERT_SCALE}")
 
     def time_window_callback(self, sender, app_data, user_data):
         WINDOW_TIME = self.combo2twindow_dict[app_data]

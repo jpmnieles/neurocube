@@ -96,8 +96,12 @@ class UiPresenter:
 
                         if is_auto:
                             data_filtered = data[channel_num - 1][time_mask]
+                            max_data_filtered = data_filtered.max()
+                            min_data_filtered = data_filtered.min()
                             dpg.set_axis_limits(f"eeg_ch{channel_num}_y_axis", 
-                                data_filtered.min(), data_filtered.max())
+                                min_data_filtered, max_data_filtered)
+                            dpg.configure_item(f"eeg_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
+                            dpg.configure_item(f"eeg_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
                             
     def process_ppg_time_series_widget(self):
         while True:
@@ -134,8 +138,12 @@ class UiPresenter:
 
                     if is_auto:
                         data_filtered = data[channel_num - 1][time_mask]
+                        max_data_filtered = data_filtered.max()
+                        min_data_filtered = data_filtered.min()
                         dpg.set_axis_limits(f"ppg_ch{channel_num}_y_axis", 
-                            data_filtered.min(), data_filtered.max())
+                            min_data_filtered, max_data_filtered)
+                        dpg.configure_item(f"ppg_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
+                        dpg.configure_item(f"ppg_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
                         
 
     def process_status_mp_queue(self):
