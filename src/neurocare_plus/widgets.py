@@ -112,17 +112,7 @@ class EEGPlot:
                     self.eeg_ch_plot.build(channel_num=i,height=100)
 
             # Plotting just the Axis
-            with dpg.group(horizontal=True):
-                dpg.add_spacer(width=35)
-
-                with dpg.plot(height=40, width=-1, no_title=True, tag="timeline_plot_widget"):
-                    # X-Axis continuously streaming forward
-                    dpg.add_plot_axis(dpg.mvXAxis, label="Time (seconds)", tag="global_x_axis", no_tick_marks=True)
-                    dpg.add_plot_axis(dpg.mvYAxis, tag="global_y_axis_spacer", no_tick_marks=True, no_tick_labels=True)
-                    dpg.set_axis_limits("global_y_axis_spacer", -150.0, 150.0)
-                    
-                    # Bind transparency layouts to keep workspace completely clean
-                    dpg.bind_item_theme("timeline_plot_widget", "transparent_plot_theme")
+            view_elements.AxisOnlyPlot('eeg').build()
 
             # Default Value Callback
             self.vert_scale_callback(None, "200 uV", None)
@@ -138,7 +128,7 @@ class EEGPlot:
         WINDOW_TIME = self.combo2twindow_dict[app_data]
         for channel_num in range(1,9):
             dpg.set_axis_limits(f"eeg_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
-        dpg.set_axis_limits("global_x_axis", -WINDOW_TIME, 0)
+        dpg.set_axis_limits("eeg_static_x_axis", -WINDOW_TIME, 0)
 
 
 class PPGPlot:

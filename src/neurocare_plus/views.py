@@ -29,17 +29,20 @@ class MainView:
 
         with dpg.theme(tag="transparent_plot_theme"):
             with dpg.theme_component(dpg.mvPlot):
+                dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 1, 1, category=dpg.mvThemeCat_Core)
+                dpg.add_theme_style(dpg.mvPlotStyleVar_PlotPadding, 0, 0, category=dpg.mvThemeCat_Plots)
+                # dpg.add_theme_style(dpg.mvPlotStyleVar_MinorAlpha, 0.0, category=dpg.mvThemeCat_Plots)
+                # dpg.add_theme_style(dpg.mvPlotStyleVar_MajorGridSize, 1.0, 1.0, category=dpg.mvThemeCat_Plots)
                 dpg.add_theme_color(dpg.mvPlotCol_FrameBg, [0, 0, 0, 0], category=dpg.mvThemeCat_Plots)
                 dpg.add_theme_color(dpg.mvPlotCol_PlotBg, [0, 0, 0, 0], category=dpg.mvThemeCat_Plots)
                 dpg.add_theme_color(dpg.mvPlotCol_PlotBorder, [0, 0, 0, 0], category=dpg.mvThemeCat_Plots)
 
-        # Padding for Each EEG Plot
         with dpg.theme(tag="plot_theme"):
             with dpg.theme_component(dpg.mvPlot):
-                # Set explicit horizontal and vertical inner padding
-                # This keeps the plot area square/fixed despite label sizes
-                dpg.add_theme_style(dpg.mvPlotStyleVar_PlotPadding, 5, 5, category=dpg.mvThemeCat_Plots)
-                dpg.add_theme_style(dpg.mvPlotStyleVar_LabelPadding, 20, 5, category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 1, 1, category=dpg.mvThemeCat_Core)
+                dpg.add_theme_style(dpg.mvPlotStyleVar_PlotPadding, 0, 0, category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_style(dpg.mvPlotStyleVar_MinorAlpha, 0.0, category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_style(dpg.mvPlotStyleVar_MajorGridSize, 1.0, 1.0, category=dpg.mvThemeCat_Plots)
             
         # Setup Wifgets
         self.widgets = WidgetManager()

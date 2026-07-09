@@ -148,7 +148,6 @@ class DynamicPlot:
 
 
 class UnitChannelPlot:
-
     def __init__(self, channel_type):
         self.channel_type = channel_type
 
@@ -161,14 +160,14 @@ class UnitChannelPlot:
 
         with dpg.group(horizontal=True, tag=group_ch_plot_tag, height=height):
             # Left Panel: Clean borderless text controls
-            with dpg.child_window(auto_resize_x=True, height=0, border=False, no_scrollbar=True):
+            with dpg.child_window(auto_resize_x=True, width=15, height=0, border=False, no_scrollbar=True):
                 dpg.add_text(f"{channel_num}")
 
             # Right Panel: Plot Viewport Area
             with dpg.plot(height=0, width=-1, tag=plot_tag):
                 
-                dpg.add_plot_axis(dpg.mvXAxis, tag=x_axis_tag, no_tick_labels=True)
-                dpg.add_plot_axis(dpg.mvYAxis, tag=y_axis_tag)
+                dpg.add_plot_axis(dpg.mvXAxis, tag=x_axis_tag, no_tick_labels=True, no_tick_marks=False, no_gridlines=True)
+                dpg.add_plot_axis(dpg.mvYAxis, tag=y_axis_tag, no_tick_labels=True, no_tick_marks=True)
                 
                 dpg.add_line_series([], [], parent=y_axis_tag, tag=series_tag)
 
@@ -192,4 +191,26 @@ class EnEEGChannel:
     def en_eeg_ch_callback(self):
         en_ch = dpg.get_value(self.tag)
         dpg.configure_item(self.group_ch_plot_tag, show=en_ch)
+
+
+class AxisOnlyPlot:
+    def __init__(self, channel_type):
+        self.channel_type = channel_type
+        self.plot_tag = f"{channel_type}_static_plot"
+        self.x_axis_tag = f"{channel_type}_static_x_axis"
+        self.y_axis_tag = f"{channel_type}_static_y_axis"
+    
+    def build(self):
+        with dpg.group(horizontal=True):
+            with dpg.child_window(width=15, height=40, border=False, no_scrollbar=True):
+                pass
+
+            with dpg.plot(height=40, width=-1, no_title=True, tag=self.plot_tag):
+                # X-Axis continuously streaming forward
+                dpg.add_plot_axis(dpg.mvXAxis, label="Time (seconds)", tag=self.x_axis_tag, no_tick_marks=True)
+                dpg.add_plot_axis(dpg.mvYAxis, tag=self.y_axis_tag, no_tick_marks=True, no_tick_labels=True)
+                dpg.set_axis_limits(self.y_axis_tag , -150.0, 150.0)
+                
+                # Bind transparency layouts to keep workspace completely clean
+                dpg.bind_item_theme(self.plot_tag, "transparent_plot_theme")
 
