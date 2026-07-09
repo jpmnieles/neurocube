@@ -4,60 +4,41 @@ import dearpygui.dearpygui as dpg
 
 class DeviceBlock:
     """A self-contained hardware control component."""
-    def __init__(self, device_name):
+    def __init__(self, device_name, btn_tag):
         self.device_name = device_name
-        self.is_connected = False
-        
-        self.status_text_id = None
-        self.indicator_id = None
-        self.button_id = None
+        self.btn_tag = btn_tag
+        self.status_tag = btn_tag + "_status"
+        self.indicator_tag = btn_tag + "_indicator"
 
     def build(self):
         with dpg.group():
+            # Add text and button
             dpg.add_text(self.device_name, color=[255, 255, 255])
-            
-            self.button_id = dpg.add_button(
-                label="Start Device", 
-                width=120, 
-                callback=self._on_toggle_click
-            )
+            dpg.add_button(label="Start Device", width=-1, tag=self.btn_tag)
             
             # Status indicator placed cleanly beneath the button
             with dpg.group(horizontal=True):
                 # Drawlist height set to 20 to cleanly accommodate center tracking at Y=10
                 with dpg.drawlist(width=16, height=20):
-                    self.indicator_id = dpg.draw_circle(
+                    dpg.draw_circle(
                         center=[8, 10], radius=5, 
-                        color=[128, 128, 128, 255], fill=[128, 128, 128, 255]
+                        color=[128, 128, 128, 255], fill=[128, 128, 128, 255], 
+                        tag=self.indicator_tag
                     )
-                self.status_text_id = dpg.add_text("Disconnected", color=[160, 160, 160])
+                dpg.add_text("Disconnected", color=[160, 160, 160], tag=self.status_tag)
                 
             dpg.add_spacer(height=5)
             dpg.add_separator()
             dpg.add_spacer(height=5)
 
-    def _on_toggle_click(self, sender, app_data):
-        self.is_connected = not self.is_connected
-        
-        if self.is_connected:
-            dpg.set_value(self.status_text_id, "Connected")
-            dpg.configure_item(self.indicator_id, color=[0, 255, 0, 255], fill=[0, 255, 0, 255])
-            dpg.configure_item(self.button_id, label="Stop Device")
-        else:
-            dpg.set_value(self.status_text_id, "Disconnected")
-            dpg.configure_item(self.indicator_id, color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
-            dpg.configure_item(self.button_id, label="Start Device")
-
 
 class ComboDisplayWidget:
-    def __init__(self, combo_item_list=[], widget_list=[], display_tag='', height=0, default_value: str = ''):
+    def __init__(self, combo_item_list=[], widget_list=[], display_tag=''):
         self.combo_item_list = combo_item_list
         self.widget_list = widget_list
         self.display_tag = display_tag
         self.combo2widget_dict = self._make_combo2widget_map(combo_item_list, widget_list)
         self.widget2combo_dict = self._make_widget2combo_map(widget_list, combo_item_list)
-        self.height = height
-        self.default_value = default_value
 
     def _make_combo2widget_map(self, combo_item_list, widget_list):
         map_dict = dict(zip(combo_item_list, widget_list))
@@ -104,13 +85,12 @@ class ComboDisplayWidget:
         if not source_display_tag == "hidden_stage":
             dpg.set_value(f"combo_{source_display_tag}", self.widget2combo_dict[old_child_tag])
 
-    def build(self):
-        with dpg.child_window(tag=self.display_tag, border=False, height=self.height):
-            dpg.add_combo(items=self.combo_item_list, tag=f"combo_{self.display_tag}",
-                          callback=self.dropdown_callback, user_data=self.display_tag, 
-                          default_value=self.default_value, width=200)
-        if self.default_value:
-            self.dropdown_callback(f"combo_{self.display_tag}", self.default_value, self.display_tag)
+    def build(self, default_value=''):
+        dpg.add_combo(items=self.combo_item_list, tag=f"combo_{self.display_tag}",
+                        callback=self.dropdown_callback, user_data=self.display_tag, 
+                        default_value=default_value, width=200)
+        if default_value:
+            self.dropdown_callback(f"combo_{self.display_tag}", default_value, self.display_tag)
 
 
 class DynamicPlot:
@@ -167,25 +147,87 @@ class DynamicPlot:
             dpg.fit_axis_data(self.y_axis_id)
 
 
-class EEGPlot:
-    def __init__(self, tag, default_sensor="EEG", height=-1, parent=0):
-        self.tag = tag
-        self.sensor_type = default_sensor
-        self.height = height
-        self.parent = parent
+class UnitChannelPlot:
+    def __init__(self, channel_type):
+        self.channel_type = channel_type
 
-        self.build()
+    def build(self, channel_num, height):
+        x_axis_tag = f"{self.channel_type}_ch{channel_num}_x_axis"
+        y_axis_tag = f"{self.channel_type}_ch{channel_num}_y_axis"
+        series_tag = f"{self.channel_type}_ch{channel_num}_series"
+        plot_tag = f"{self.channel_type}_ch{channel_num}_plot"
+        group_ch_plot_tag = f"{self.channel_type}_ch{channel_num}_group_ch_plot"
+        max_y_axis_tag = f"{self.channel_type}_ch{channel_num}_max_y_axis"
+        min_y_axis_tag = f"{self.channel_type}_ch{channel_num}_min_y_axis"
+
+        with dpg.group(horizontal=True, tag=group_ch_plot_tag, height=height):
+            # Left Panel: Clean borderless text controls
+            with dpg.child_window(auto_resize_x=True, width=15, height=0, border=False, no_scrollbar=True):
+                dpg.add_text(f"{channel_num}")
+
+            # Right Panel: Plot Viewport Area
+            with dpg.plot(height=0, width=-1, tag=plot_tag):
+                
+                dpg.add_plot_axis(dpg.mvXAxis, tag=x_axis_tag, no_tick_labels=True, no_tick_marks=False, no_gridlines=True)
+                dpg.add_plot_axis(dpg.mvYAxis, tag=y_axis_tag, no_tick_labels=True, no_tick_marks=False)
+                
+                dpg.add_line_series([], [], parent=y_axis_tag, tag=series_tag)
+
+                dpg.add_plot_annotation(label=f"{ 200}", default_value=(-25, 100000), 
+                                        offset=(0, 0),  color=[0, 0, 0, 80],
+                                        clamped=True, tag=max_y_axis_tag)
+                
+                dpg.add_plot_annotation(label=f"{-200}", default_value=(-25, -100000), 
+                                        offset=(0, 0),  color=[0, 0, 0, 80],
+                                        clamped=True, tag=min_y_axis_tag)
+
+            dpg.bind_item_theme(plot_tag, "plot_theme")
+            dpg.bind_item_theme(series_tag, f"color_{channel_num-1}")
+
+
+class EnEEGChannel:
+    def __init__(self, channel_num):
+        self.channel_num = channel_num
+        self.tag = f"en_eeg_ch{channel_num}"
+        self.group_ch_plot_tag = f"eeg_ch{channel_num}_group_ch_plot"
 
     def build(self):
-        with dpg.child_window(tag=self.tag, border=True, height=self.height, width=-1, parent=self.parent):
-            with dpg.plot(height=-1, width=-1):
+        if self.channel_num < 10:
+            dpg.add_checkbox(label=f' {self.channel_num}', default_value=True, 
+                            callback=self.en_eeg_ch_callback, tag=self.tag)
+        else:
+            dpg.add_checkbox(label=f'{self.channel_num}', default_value=True, 
+                            callback=self.en_eeg_ch_callback, tag=self.tag)
+    
+    def en_eeg_ch_callback(self):
+        en_ch = dpg.get_value(self.tag)
+        dpg.configure_item(self.group_ch_plot_tag, show=en_ch)
+
+
+class AxisOnlyPlot:
+    def __init__(self, channel_type):
+        self.channel_type = channel_type
+        self.plot_tag = f"{channel_type}_static_plot"
+        self.x_axis_tag = f"{channel_type}_static_x_axis"
+        self.y_axis_tag = f"{channel_type}_static_y_axis"
+    
+    def build(self):
+        with dpg.group(horizontal=True):
+            with dpg.child_window(width=15, height=40, border=False, no_scrollbar=True):
+                pass
+
+            with dpg.plot(height=40, width=-1, no_title=True, tag=self.plot_tag):
+                # X-Axis continuously streaming forward
+                dpg.add_plot_axis(dpg.mvXAxis, label="Time (seconds)", tag=self.x_axis_tag, no_tick_marks=True)
+                dpg.add_plot_axis(dpg.mvYAxis, tag=self.y_axis_tag, no_tick_marks=True, no_tick_labels=True)
+                dpg.set_axis_limits(self.y_axis_tag , -150.0, 150.0)
                 
-                # 2. Add the reference X-Axis (Child of the plot)
-                dpg.add_plot_axis(dpg.mvXAxis, label="Time (Seconds)", tag="x_axis")
-                
-                # 3. Add the reference Y-Axis (Child of the plot)
-                # Note: We capture its returned ID or define a tag to assign the line series parent
-                dpg.add_plot_axis(dpg.mvYAxis, label="Amplitude (Voltage)", tag="y_axis")
-                
-                # 4. Push data series strictly as a child of the targeted Y-Axis
-                dpg.add_line_series([], [], label="Sensor Alpha", parent="y_axis", tag="Plot_Series_Tag")
+                # Bind transparency layouts to keep workspace completely clean
+                dpg.bind_item_theme(self.plot_tag, "transparent_plot_theme")
+
+
+def create_series_theme(color):
+    with dpg.theme() as theme_id:
+        with dpg.theme_component(dpg.mvLineSeries):
+            dpg.add_theme_color(dpg.mvPlotCol_Line, color, category=dpg.mvThemeCat_Plots)
+    return theme_id

@@ -1,6 +1,8 @@
 import view_elements
 import dearpygui.dearpygui as dpg
 
+from widgets import WidgetManager
+
 
 class MainView:
     def __init__(self):
@@ -9,7 +11,7 @@ class MainView:
         
         ### Themes ###
         with dpg.theme(tag="table_no_pad_theme"):
-            with dpg.theme_component(dpg.mvAll):
+            with dpg.theme_component(dpg.mvTable):
                 # Change the cell padding to [X-axis padding, Y-axis padding]
                 dpg.add_theme_style(dpg.mvStyleVar_CellPadding, 5, 0, category=dpg.mvThemeCat_Core)
 
@@ -24,17 +26,59 @@ class MainView:
                 dpg.add_theme_color(dpg.mvThemeCol_Button, [180, 50, 50, 255])         # Idle Red
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, [210, 70, 70, 255])  # Hover Red
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, [140, 30, 30, 255])   # Click Red
-        
-        # Setup Hidden Staging Window
-        self._build_hidden_staging_window()
 
-        # Initialize Widgets
-        self.primary_plot = view_elements.EEGPlot("EEG_widget", "EEG",   # Any Widget Plots
-                                                      height=0, parent="hidden_stage")  
-        self.alpha_plot = view_elements.DynamicPlot("PPG_widget", "PPG", 
-                                                    height=0, parent="hidden_stage")  # TODO: Change to dynamic 50% of the height
-        self.beta_plot = view_elements.DynamicPlot("IMU_widget", "IMU", 
-                                                   height=0, parent="hidden_stage")
+        with dpg.theme(tag="transparent_plot_theme"):
+            with dpg.theme_component(dpg.mvPlot):
+                dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 1, 1, category=dpg.mvThemeCat_Core)
+                dpg.add_theme_style(dpg.mvPlotStyleVar_PlotPadding, 0, 0, category=dpg.mvThemeCat_Plots)
+                # dpg.add_theme_style(dpg.mvPlotStyleVar_MinorAlpha, 0.0, category=dpg.mvThemeCat_Plots)
+                # dpg.add_theme_style(dpg.mvPlotStyleVar_MajorGridSize, 1.0, 1.0, category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_color(dpg.mvPlotCol_FrameBg, [0, 0, 0, 0], category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_color(dpg.mvPlotCol_PlotBg, [0, 0, 0, 0], category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_color(dpg.mvPlotCol_PlotBorder, [0, 0, 0, 0], category=dpg.mvThemeCat_Plots)
+
+        with dpg.theme(tag="plot_theme"):
+            with dpg.theme_component(dpg.mvPlot):
+                dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 1, 1, category=dpg.mvThemeCat_Core)
+                dpg.add_theme_style(dpg.mvPlotStyleVar_PlotPadding, 0, 0, category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_style(dpg.mvPlotStyleVar_MinorAlpha, 0.0, category=dpg.mvThemeCat_Plots)
+                dpg.add_theme_style(dpg.mvPlotStyleVar_MajorGridSize, 1.0, 1.0, category=dpg.mvThemeCat_Plots)
+
+        ### Colors  ###
+        color_pool = [
+                [255, 100, 100, 255], # 0. Bright Red
+                [100, 255, 100, 255], # 1. Bright Green
+                [100, 200, 255, 255], # 2. Light Blue
+                [255, 255, 100, 255], # 3. Yellow
+                [255, 100, 255, 255], # 4. Magenta
+                [100, 255, 255, 255], # 5. Cyan
+                [255, 180, 100, 255], # 6. Orange
+                [200, 150, 255, 255], # 7. Light Purple
+                [150, 100, 50, 255],  # 8. Brown
+                [50, 150, 100, 255],  # 9. Dark Sea Green
+                [100, 50, 150, 255],  # 10. Deep Purple
+                [200, 100, 150, 255], # 11. Dusty Rose
+                [150, 200, 100, 255], # 12. Olive/Lime
+                [100, 150, 200, 255], # 13. Steel Blue
+                [255, 150, 150, 255], # 14. Light Salmon
+                [150, 255, 150, 255], # 15. Pale Green
+                [150, 150, 255, 255], # 16. Periwinkle
+                [255, 200, 150, 255], # 17. Peach
+                [200, 255, 150, 255], # 18. Yellow-Green
+                [150, 200, 255, 255], # 19. Sky Blue
+                [255, 100, 150, 255], # 20. Hot Pink
+                [150, 255, 200, 255], # 21. Aquamarine
+                [200, 150, 100, 255], # 22. Tan/Bronze
+                [255, 220, 200, 255], # 23. Apricot
+                [200, 200, 100, 255]  # 24. Khaki/Gold
+            ]
+        for i in range(25):
+            with dpg.theme(tag=f"color_{i}"):
+                with dpg.theme_component(dpg.mvLineSeries):
+                    dpg.add_theme_color(dpg.mvPlotCol_Line, color_pool[i], category=dpg.mvThemeCat_Plots)
+            
+        # Setup Wifgets
+        self.widgets = WidgetManager()
         
         # View Components
         self.menu_bar = MenuBar()
@@ -44,9 +88,7 @@ class MainView:
         self.eeg_tab = EEGTab()
         self.smartwatch_tab = SmartwatchTab()
 
-    def _build_hidden_staging_window(self):
-        with dpg.window(tag="hidden_stage", no_move=True, no_resize=True, show=False): 
-            pass
+        dpg.show_metrics()
     
     def build(self):
         # Main Window
@@ -103,9 +145,9 @@ class MenuBar:
 class DevicePanel:
     def __init__(self):
         self.devices = [
-            view_elements.DeviceBlock("OpenBCI EEG"),
-            view_elements.DeviceBlock("Emotibit"),
-            view_elements.DeviceBlock("PBM Module")
+            view_elements.DeviceBlock("OpenBCI EEG", "btn_eeg_device_connect"),
+            view_elements.DeviceBlock("Emotibit", "btn_emotibit_device_connect"),
+            view_elements.DeviceBlock("PBM Module", "btn_pbm_device_connect")
         ]
 
     def build(self):
@@ -147,14 +189,12 @@ class MonitorTab:
         self.primary_select = view_elements.ComboDisplayWidget(
             combo_item_list=['EEG','PPG','IMU'],
             widget_list=['EEG_widget','PPG_widget','IMU_widget'],
-            display_tag='primary_display',
-            default_value='EEG'
+            display_tag='primary_display'
         )
         self.alpha_select = view_elements.ComboDisplayWidget(
             combo_item_list=['EEG','PPG','IMU'],
             widget_list=['EEG_widget','PPG_widget','IMU_widget'],
-            display_tag='alpha_display',
-            height=420
+            display_tag='alpha_display'
         )
         self.beta_select = view_elements.ComboDisplayWidget(
             combo_item_list=['EEG','PPG','IMU'],
@@ -172,24 +212,26 @@ class MonitorTab:
             with dpg.table(header_row=False, policy=dpg.mvTable_SizingStretchProp, 
                            resizable=True, scrollX=True, scrollY=True, height=0, tag='monitor_table'):
                 
-                # Column Width: 65% Primary Display, 35% Secondary Display
-                dpg.add_table_column(init_width_or_weight=0.65)
-                dpg.add_table_column(init_width_or_weight=0.35)
+                # Column Width: 60% Primary Display, 40% Secondary Display
+                dpg.add_table_column(init_width_or_weight=0.60)
+                dpg.add_table_column(init_width_or_weight=0.40)
                 
                 # Insert Table Row
                 with dpg.table_row():
                     
                     # COLUMN 1: Primary Display
-                    with dpg.child_window(border=False, height=0):
+                    with dpg.child_window(border=False, height=0, tag="primary_display"):
 
                         ## Display 1
-                        self.primary_select.build()
+                        self.primary_select.build('EEG')
                     
                     # COLUMN 2: Secondary Displays
-                    with dpg.child_window(border=False, height=0):
+                    with dpg.child_window(border=False, height=0, no_scrollbar=True,
+                                          tag="monitor_sec_display"):
                         
                         ## Display 2A
-                        self.alpha_select.build()
+                        with dpg.child_window(border=False, height=420, tag="alpha_display"):
+                            self.alpha_select.build('PPG')
                         
                         ## Separator
                         dpg.add_spacer(height=5)
@@ -197,7 +239,8 @@ class MonitorTab:
                         dpg.add_spacer(height=5)
                         
                         ## Display 2B
-                        self.beta_select.build()
+                        with dpg.child_window(border=False, height=0, tag="beta_display"):
+                            self.beta_select.build()
 
             # Bind the theme
             dpg.bind_item_theme("monitor_table", "table_no_pad_theme")
