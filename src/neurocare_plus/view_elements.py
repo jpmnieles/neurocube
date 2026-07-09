@@ -182,6 +182,7 @@ class UnitChannelPlot:
                                         clamped=True, tag=min_y_axis_tag)
 
             dpg.bind_item_theme(plot_tag, "plot_theme")
+            dpg.bind_item_theme(series_tag, f"color_{channel_num-1}")
 
 
 class EnEEGChannel:
@@ -224,3 +225,9 @@ class AxisOnlyPlot:
                 # Bind transparency layouts to keep workspace completely clean
                 dpg.bind_item_theme(self.plot_tag, "transparent_plot_theme")
 
+
+def create_series_theme(color):
+    with dpg.theme() as theme_id:
+        with dpg.theme_component(dpg.mvLineSeries):
+            dpg.add_theme_color(dpg.mvPlotCol_Line, color, category=dpg.mvThemeCat_Plots)
+    return theme_id

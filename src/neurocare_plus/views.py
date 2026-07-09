@@ -43,6 +43,39 @@ class MainView:
                 dpg.add_theme_style(dpg.mvPlotStyleVar_PlotPadding, 0, 0, category=dpg.mvThemeCat_Plots)
                 dpg.add_theme_style(dpg.mvPlotStyleVar_MinorAlpha, 0.0, category=dpg.mvThemeCat_Plots)
                 dpg.add_theme_style(dpg.mvPlotStyleVar_MajorGridSize, 1.0, 1.0, category=dpg.mvThemeCat_Plots)
+
+        ### Colors  ###
+        color_pool = [
+                [255, 100, 100, 255], # 0. Bright Red
+                [100, 255, 100, 255], # 1. Bright Green
+                [100, 200, 255, 255], # 2. Light Blue
+                [255, 255, 100, 255], # 3. Yellow
+                [255, 100, 255, 255], # 4. Magenta
+                [100, 255, 255, 255], # 5. Cyan
+                [255, 180, 100, 255], # 6. Orange
+                [200, 150, 255, 255], # 7. Light Purple
+                [150, 100, 50, 255],  # 8. Brown
+                [50, 150, 100, 255],  # 9. Dark Sea Green
+                [100, 50, 150, 255],  # 10. Deep Purple
+                [200, 100, 150, 255], # 11. Dusty Rose
+                [150, 200, 100, 255], # 12. Olive/Lime
+                [100, 150, 200, 255], # 13. Steel Blue
+                [255, 150, 150, 255], # 14. Light Salmon
+                [150, 255, 150, 255], # 15. Pale Green
+                [150, 150, 255, 255], # 16. Periwinkle
+                [255, 200, 150, 255], # 17. Peach
+                [200, 255, 150, 255], # 18. Yellow-Green
+                [150, 200, 255, 255], # 19. Sky Blue
+                [255, 100, 150, 255], # 20. Hot Pink
+                [150, 255, 200, 255], # 21. Aquamarine
+                [200, 150, 100, 255], # 22. Tan/Bronze
+                [255, 220, 200, 255], # 23. Apricot
+                [200, 200, 100, 255]  # 24. Khaki/Gold
+            ]
+        for i in range(25):
+            with dpg.theme(tag=f"color_{i}"):
+                with dpg.theme_component(dpg.mvLineSeries):
+                    dpg.add_theme_color(dpg.mvPlotCol_Line, color_pool[i], category=dpg.mvThemeCat_Plots)
             
         # Setup Wifgets
         self.widgets = WidgetManager()
