@@ -91,12 +91,6 @@ class EEGPlot:
                             with dpg.group(horizontal=True):
                                 for i in range(9,17):
                                     self.en_eeg_ch[i].build()
-                    
-                    # Bind the single callback to the toggle open handler
-                    with dpg.item_handler_registry(tag="toggle_eeg_collapsing_header_handler"):
-                        dpg.add_item_activated_handler(callback=self.collapsing_header_callback)
-                        
-                    dpg.bind_item_handler_registry("eeg_header_channels", "toggle_eeg_collapsing_header_handler")
                         
                     # 2nd Column
                     with dpg.group(horizontal=True, indent=4):
@@ -145,15 +139,6 @@ class EEGPlot:
         for channel_num in range(1,9):
             dpg.set_axis_limits(f"eeg_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
         dpg.set_axis_limits("global_x_axis", -WINDOW_TIME, 0)
-    
-    def collapsing_header_callback(self, sender, app_data, user_data):
-        try:
-            self.is_collapsing_header_open = not self.is_collapsing_header_open
-            print(f"[CB Collapsing Header Open/Close]: {self.is_collapsing_header_open}")
-            view_elements.window_resize_handler(None, None, 
-                                                {"EEG_Collapsing_Header":self.is_collapsing_header_open})
-        except:
-            pass
 
 
 class PPGPlot:

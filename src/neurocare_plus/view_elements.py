@@ -85,13 +85,6 @@ class ComboDisplayWidget:
         if not source_display_tag == "hidden_stage":
             dpg.set_value(f"combo_{source_display_tag}", self.widget2combo_dict[old_child_tag])
 
-        try:
-            dpg.split_frame()
-            window_resize_handler(None, None, None)
-        except:
-            pass
-                
-
     def build(self, default_value=''):
         dpg.add_combo(items=self.combo_item_list, tag=f"combo_{self.display_tag}",
                         callback=self.dropdown_callback, user_data=self.display_tag, 
@@ -199,45 +192,4 @@ class EnEEGChannel:
     def en_eeg_ch_callback(self):
         en_ch = dpg.get_value(self.tag)
         dpg.configure_item(self.group_ch_plot_tag, show=en_ch)
-        window_resize_handler(None, None, None)
 
-
-def window_resize_handler(sender, app_data, user_data):
-    print("[Resize] Window Callback")
-
-    #----- Monitor Tab Secondary Display (For Alpha and Beta Displays) -----#
-    if dpg.get_item_configuration("monitor_sec_display")['show']:
-        parent_height = dpg.get_item_rect_size("monitor_sec_display")[1]
-        
-        # Subtracting height of spacers to prevent scroll bar from appearing.
-        available_height = parent_height - 26
-        
-        # Ensure height doesn't drop below a minimum threshold
-        if available_height > 20:
-            half_height = available_height // 2
-            
-            # Apply the new 50% heights to the exact string tags
-            dpg.configure_item("alpha_display", height=half_height)
-            dpg.configure_item("beta_display", height=half_height)
-
-    #----- Monitor Tab Secondary Display -----#       
-    eeg_plot_parent_height = dpg.get_item_rect_size("eeg_plots_parent")[1]
-    eeg_collapsing_header_height = -19
-
-    if dpg.get_item_configuration("eeg_plots_parent")['show']:
-        if user_data and ("EEG_Collapsing_Header" in user_data):  # Hardcoded Option because State is Delayed
-            if user_data["EEG_Collapsing_Header"]:
-                eeg_collapsing_header_height = -67
-            else:
-                eeg_collapsing_header_height = 21
-
-    # Subtracting height of spacers to prevent scroll bar from appearing.
-    available_height = eeg_plot_parent_height + eeg_collapsing_header_height - 11
-
-    visible_ch = [i for i in range(1, 9) if dpg.get_value(f"en_eeg_ch{i}")]
-
-    if available_height > 20:
-        portion_height = available_height // len(visible_ch)
-        
-        for channel_num in visible_ch:
-            dpg.configure_item(f"eeg_ch{channel_num}_group_ch_plot", height=portion_height)

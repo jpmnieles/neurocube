@@ -52,6 +52,9 @@ class UiPresenter:
         # DPG Explicit Loop
         while dpg.is_dearpygui_running():
 
+            # Dynamic Sizing
+            self.update_window_layouts()
+
             # Thread Functions
             self.process_status_mp_queue()
             self.process_eeg_time_series_widget()
@@ -216,3 +219,38 @@ class UiPresenter:
             else:
                 self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target='EMOTIBIT', action='STOP_STREAM').model_dump())
                 self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target='EMOTIBIT', action='CLOSE_DEVICE').model_dump())
+
+    def update_window_layouts(self):
+        # ----- Monitor Tab Secondary Display (For Alpha and Beta Displays) -----#
+        if dpg.does_item_exist("monitor_sec_display") and dpg.get_item_configuration("monitor_sec_display")['show']:
+            parent_height = dpg.get_item_rect_size("monitor_sec_display")[1]
+            
+            # Subtracting height of spacers to prevent scroll bar from appearing.
+            available_height = parent_height - 26
+            
+            # Ensure height doesn't drop below a minimum threshold
+            if available_height > 20:
+                half_height = available_height // 2
+                
+                # Apply the new 50% heights to the exact string tags
+                dpg.configure_item("alpha_display", height=half_height)
+                dpg.configure_item("beta_display", height=half_height)
+
+        # ----- Monitor Tab Secondary Display -----#       
+        if dpg.does_item_exist("eeg_plots_parent") and dpg.get_item_configuration("eeg_plots_parent")['show']:
+            parent_id = dpg.get_item_parent("eeg_plots_parent")
+            eeg_plot_parent_height = dpg.get_item_rect_size(parent_id)[1]
+            eeg_collapsing_header_height = dpg.get_item_rect_size("eeg_header_channels_wrapper")[1]
+
+            # Subtracting height of spacers to prevent scroll bar from appearing.
+            available_height = eeg_plot_parent_height - eeg_collapsing_header_height - 100
+
+            visible_ch = [i for i in range(1, 9) if dpg.get_value(f"en_eeg_ch{i}")]
+
+            if available_height > 20 and len(visible_ch) > 0:
+                portion_height = available_height // len(visible_ch)
+                
+                for channel_num in visible_ch:
+                    item_tag = f"eeg_ch{channel_num}_group_ch_plot"
+                    if dpg.does_item_exist(item_tag):
+                        dpg.configure_item(item_tag, height=portion_height)

@@ -1,7 +1,6 @@
 import view_elements
 import dearpygui.dearpygui as dpg
 
-from view_elements import window_resize_handler
 from widgets import WidgetManager
 
 
@@ -84,7 +83,6 @@ class MainView:
         dpg.create_viewport(title='Neuro\u00b3 GUI', width=1920, height=1080)
         dpg.setup_dearpygui()
         dpg.set_primary_window("Main_App_Window", True)
-        dpg.set_viewport_resize_callback(window_resize_handler)
         dpg.show_viewport()
 
     def teardown(self):
