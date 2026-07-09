@@ -47,6 +47,7 @@ class EEGPlot:
         self.tag = tag
         self.height = height
         self.parent = parent
+        self.is_collapsing_header_open = False
 
         self.eeg_ch_plot = view_elements.UnitChannelPlot('eeg')
         self.en_eeg_ch= {i: view_elements.EnEEGChannel(channel_num=i) for i in range(1,17)}
@@ -82,13 +83,20 @@ class EEGPlot:
                 
                 with dpg.table_row():
                     # 1st Column
-                    with dpg.collapsing_header(indent=4, label="Channel Options", tag='header_channels'):
-                        with dpg.group(horizontal=True):
-                            for i in range(1,9):
-                                self.en_eeg_ch[i].build()
-                        with dpg.group(horizontal=True):
-                            for i in range(9,17):
-                                self.en_eeg_ch[i].build()
+                    with dpg.group(tag="eeg_header_channels_wrapper"):
+                        with dpg.collapsing_header(indent=4, label="Channel Options", tag="eeg_header_channels"):
+                            with dpg.group(horizontal=True):
+                                for i in range(1,9):
+                                    self.en_eeg_ch[i].build()
+                            with dpg.group(horizontal=True):
+                                for i in range(9,17):
+                                    self.en_eeg_ch[i].build()
+                    
+                    # Bind the single callback to the toggle open handler
+                    with dpg.item_handler_registry(tag="toggle_eeg_collapsing_header_handler"):
+                        dpg.add_item_activated_handler(callback=self.collapsing_header_callback)
+                        
+                    dpg.bind_item_handler_registry("eeg_header_channels", "toggle_eeg_collapsing_header_handler")
                         
                     # 2nd Column
                     with dpg.group(horizontal=True, indent=4):
@@ -105,7 +113,7 @@ class EEGPlot:
             dpg.add_spacer(height=1)
 
             # Plotting All 8 Channels
-            with dpg.child_window(border=False, tag="eeg_plots_parent", height=-45):
+            with dpg.child_window(border=False, tag="eeg_plots_parent", height=-45, no_scrollbar=True):
                 for i in range(1,9):
                     self.eeg_ch_plot.build(channel_num=i,height=100)
 
@@ -137,6 +145,15 @@ class EEGPlot:
         for channel_num in range(1,9):
             dpg.set_axis_limits(f"eeg_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
         dpg.set_axis_limits("global_x_axis", -WINDOW_TIME, 0)
+    
+    def collapsing_header_callback(self, sender, app_data, user_data):
+        try:
+            self.is_collapsing_header_open = not self.is_collapsing_header_open
+            print(f"[CB Collapsing Header Open/Close]: {self.is_collapsing_header_open}")
+            view_elements.window_resize_handler(None, None, 
+                                                {"EEG_Collapsing_Header":self.is_collapsing_header_open})
+        except:
+            pass
 
 
 class PPGPlot:
