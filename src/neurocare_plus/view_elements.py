@@ -85,10 +85,12 @@ class ComboDisplayWidget:
         if not source_display_tag == "hidden_stage":
             dpg.set_value(f"combo_{source_display_tag}", self.widget2combo_dict[old_child_tag])
 
-        if (dpg.does_item_exist("monitor_sec_display") 
-            and dpg.does_item_exist("eeg_plots_parent")):
+        try:
             dpg.split_frame()
             window_resize_handler(None, None, None)
+        except:
+            pass
+                
 
     def build(self, default_value=''):
         dpg.add_combo(items=self.combo_item_list, tag=f"combo_{self.display_tag}",
@@ -218,23 +220,20 @@ def window_resize_handler(sender, app_data, user_data):
         dpg.configure_item("beta_display", height=half_height)
 
     #----- Monitor Tab Secondary Display -----#
-    eeg_plot_parent_height = dpg.get_item_rect_size("eeg_plots_parent")[1]
+    if dpg.get_item_configuration("eeg_plots_parent")['show']:
+        eeg_plot_parent_height = dpg.get_item_rect_size("eeg_plots_parent")[1]
 
-    en_spacer = 0
-    if user_data is not None:
-        en_spacer = user_data
+        # Subtracting height of spacers to prevent scroll bar from appearing.
+        available_height = eeg_plot_parent_height - 28
 
-    # Subtracting height of spacers to prevent scroll bar from appearing.
-    available_height = eeg_plot_parent_height - 28 + en_spacer
-
-    count = 0
-    for channel_num in range(1,9):
-        if dpg.get_value(f"en_eeg_ch{channel_num}"):
-            count += 1
-
-    if available_height > 20:
-        portion_height = available_height // count
-        
+        count = 0
         for channel_num in range(1,9):
             if dpg.get_value(f"en_eeg_ch{channel_num}"):
-                dpg.configure_item(f"eeg_ch{channel_num}_group_ch_plot", height=portion_height)
+                count += 1
+
+        if available_height > 20:
+            portion_height = available_height // count
+            
+            for channel_num in range(1,9):
+                if dpg.get_value(f"en_eeg_ch{channel_num}"):
+                    dpg.configure_item(f"eeg_ch{channel_num}_group_ch_plot", height=portion_height)
