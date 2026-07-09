@@ -188,9 +188,12 @@ class PPGPlot:
             dpg.add_spacer(height=1)
 
             # Plotting All 3 Channels
-            with dpg.child_window(border=False, tag="ppg_plots_parent", height=-45):
+            with dpg.child_window(border=False, tag="ppg_plots_parent", height=-45, no_scrollbar=True):
                 for i in range(1,4):
                     self.ppg_ch_plot.build(channel_num=i,height=100)
+
+             # Plotting just the Axis
+            view_elements.AxisOnlyPlot('ppg').build()
 
             # Default Value Callback
             self.vert_scale_callback(None, "Auto", None)
@@ -206,3 +209,4 @@ class PPGPlot:
         WINDOW_TIME = self.combo2twindow_dict[app_data]
         for channel_num in range(1,4):
             dpg.set_axis_limits(f"ppg_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+        dpg.set_axis_limits("ppg_static_x_axis", -WINDOW_TIME, 0)

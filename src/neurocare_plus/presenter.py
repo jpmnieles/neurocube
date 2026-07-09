@@ -236,11 +236,12 @@ class UiPresenter:
                 dpg.configure_item("alpha_display", height=half_height)
                 dpg.configure_item("beta_display", height=half_height)
 
-        # ----- Monitor Tab Secondary Display -----#       
-        if dpg.does_item_exist("eeg_plots_parent") and dpg.get_item_configuration("eeg_plots_parent")['show']:
-            eeg_group_plot_height = dpg.get_item_rect_size("eeg_plots_parent")[1]
+        # ----- EEG Widget -----#
+        channel_type = "eeg"       
+        if dpg.does_item_exist(f"{channel_type}_plots_parent") and dpg.get_item_configuration(f"{channel_type}_plots_parent")['show']:
+            eeg_group_plot_height = dpg.get_item_rect_size(f"{channel_type}_plots_parent")[1]
 
-            visible_ch = [i for i in range(1, 9) if dpg.get_value(f"en_eeg_ch{i}")]
+            visible_ch = [i for i in range(1, 9) if dpg.get_value(f"en_{channel_type}_ch{i}")]
             num_visible_ch = len(visible_ch)
 
             if available_height > 20 and num_visible_ch > 0:
@@ -249,9 +250,29 @@ class UiPresenter:
                 remainder_height = available_height % num_visible_ch
                 
                 for channel_num in visible_ch:
-                    item_tag = f"eeg_ch{channel_num}_group_ch_plot"
+                    item_tag = f"{channel_type}_ch{channel_num}_group_ch_plot"
                     if dpg.does_item_exist(item_tag):
                         if not channel_num == visible_ch[-1]:
                             dpg.configure_item(item_tag, height=portion_height)
                         else:
                             dpg.configure_item(item_tag, height=portion_height+remainder_height)
+
+        # ----- PPG Widget -----#       
+        channel_type = "ppg" 
+        if dpg.does_item_exist(f"{channel_type}_plots_parent") and dpg.get_item_configuration(f"{channel_type}_plots_parent")['show']:
+            eeg_group_plot_height = dpg.get_item_rect_size(f"{channel_type}_plots_parent")[1]
+            num_visible_ch = 3
+
+            if available_height > 20 and num_visible_ch > 0:
+                available_height = eeg_group_plot_height - 4*(num_visible_ch-1)
+                portion_height = available_height // num_visible_ch
+                remainder_height = available_height % num_visible_ch
+                
+                for channel_num in range(1,4):
+                    item_tag = f"{channel_type}_ch{channel_num}_group_ch_plot"
+                    if dpg.does_item_exist(item_tag):
+                        if not channel_num == 3:
+                            dpg.configure_item(item_tag, height=portion_height)
+                        else:
+                            dpg.configure_item(item_tag, height=portion_height+remainder_height)
+    
