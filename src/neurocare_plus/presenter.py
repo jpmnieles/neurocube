@@ -238,19 +238,20 @@ class UiPresenter:
 
         # ----- Monitor Tab Secondary Display -----#       
         if dpg.does_item_exist("eeg_plots_parent") and dpg.get_item_configuration("eeg_plots_parent")['show']:
-            parent_id = dpg.get_item_parent("eeg_plots_parent")
-            eeg_plot_parent_height = dpg.get_item_rect_size(parent_id)[1]
-            eeg_collapsing_header_height = dpg.get_item_rect_size("eeg_header_channels_wrapper")[1]
-
-            # Subtracting height of spacers to prevent scroll bar from appearing.
-            available_height = eeg_plot_parent_height - eeg_collapsing_header_height - 100
+            eeg_group_plot_height = dpg.get_item_rect_size("eeg_plots_parent")[1]
 
             visible_ch = [i for i in range(1, 9) if dpg.get_value(f"en_eeg_ch{i}")]
+            num_visible_ch = len(visible_ch)
 
-            if available_height > 20 and len(visible_ch) > 0:
-                portion_height = available_height // len(visible_ch)
+            if available_height > 20 and num_visible_ch > 0:
+                available_height = eeg_group_plot_height - 4*(num_visible_ch-1)
+                portion_height = available_height // num_visible_ch
+                remainder_height = available_height % num_visible_ch
                 
                 for channel_num in visible_ch:
                     item_tag = f"eeg_ch{channel_num}_group_ch_plot"
                     if dpg.does_item_exist(item_tag):
-                        dpg.configure_item(item_tag, height=portion_height)
+                        if not channel_num == visible_ch[-1]:
+                            dpg.configure_item(item_tag, height=portion_height)
+                        else:
+                            dpg.configure_item(item_tag, height=portion_height+remainder_height)
