@@ -152,24 +152,25 @@ class DynamicPlot:
             dpg.fit_axis_data(self.y_axis_id)
 
 
-class EEGChannelPlot:
-    def __init__(self):
-        pass
+class UnitChannelPlot:
+
+    def __init__(self, channel_type):
+        self.channel_type = channel_type
 
     def build(self, channel_num, height):
-        x_axis_tag = f"eeg_ch{channel_num}_x_axis"
-        y_axis_tag = f"eeg_ch{channel_num}_y_axis"
-        series_tag = f"eeg_ch{channel_num}_series"
-        plot_tag = f"eeg_ch{channel_num}_plot"
-        group_ch_plot_tag = f"eeg_ch{channel_num}_group_ch_plot"
+        x_axis_tag = f"{self.channel_type}_ch{channel_num}_x_axis"
+        y_axis_tag = f"{self.channel_type}_ch{channel_num}_y_axis"
+        series_tag = f"{self.channel_type}_ch{channel_num}_series"
+        plot_tag = f"{self.channel_type}_ch{channel_num}_plot"
+        group_ch_plot_tag = f"{self.channel_type}_ch{channel_num}_group_ch_plot"
 
-        with dpg.group(horizontal=True, tag=group_ch_plot_tag):
+        with dpg.group(horizontal=True, tag=group_ch_plot_tag, height=height):
             # Left Panel: Clean borderless text controls
-            with dpg.child_window(auto_resize_x=True, height=height, border=False, no_scrollbar=True):
+            with dpg.child_window(auto_resize_x=True, height=0, border=False, no_scrollbar=True):
                 dpg.add_text(f"{channel_num}")
 
             # Right Panel: Plot Viewport Area
-            with dpg.plot(height=100, width=-1, tag=plot_tag):
+            with dpg.plot(height=0, width=-1, tag=plot_tag):
                 
                 dpg.add_plot_axis(dpg.mvXAxis, tag=x_axis_tag, no_tick_labels=True)
                 dpg.add_plot_axis(dpg.mvYAxis, tag=y_axis_tag)
@@ -197,33 +198,6 @@ class EnEEGChannel:
         en_ch = dpg.get_value(self.tag)
         dpg.configure_item(self.group_ch_plot_tag, show=en_ch)
         window_resize_handler("None", "None", 53)
-
-
-class PPGChannelPlot:
-    def __init__(self):
-        pass
-
-    def build(self, channel_num, height):
-        x_axis_tag = f"ppg_ch{channel_num}_x_axis"
-        y_axis_tag = f"ppg_ch{channel_num}_y_axis"
-        series_tag = f"ppg_ch{channel_num}_series"
-        plot_tag = f"ppg_ch{channel_num}_plot"
-        group_ch_plot_tag = f"ppg_ch{channel_num}_group_ch_plot"
-
-        with dpg.group(horizontal=True, tag=group_ch_plot_tag):
-            # Left Panel: Clean borderless text controls
-            with dpg.child_window(auto_resize_x=True, height=height, border=False, no_scrollbar=True):
-                dpg.add_text(f"{channel_num}")
-
-            # Right Panel: Plot Viewport Area
-            with dpg.plot(height=100, width=-1, tag=plot_tag):
-                
-                dpg.add_plot_axis(dpg.mvXAxis, tag=x_axis_tag, no_tick_labels=True)
-                dpg.add_plot_axis(dpg.mvYAxis, tag=y_axis_tag)
-                
-                dpg.add_line_series([], [], parent=y_axis_tag, tag=series_tag)
-
-            dpg.bind_item_theme(plot_tag, "plot_theme")
 
 
 def window_resize_handler(sender, app_data, user_data):

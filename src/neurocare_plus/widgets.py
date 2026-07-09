@@ -48,7 +48,7 @@ class EEGPlot:
         self.height = height
         self.parent = parent
 
-        self.eeg_ch_plot = view_elements.EEGChannelPlot()
+        self.eeg_ch_plot = view_elements.UnitChannelPlot('eeg')
         self.en_eeg_ch= {i: view_elements.EnEEGChannel(channel_num=i) for i in range(1,17)}
 
         self.combo2vertscale_dict = {
@@ -164,7 +164,7 @@ class PPGPlot:
         self.height = height
         self.parent = parent
 
-        self.ppg_ch_plot = view_elements.PPGChannelPlot()
+        self.ppg_ch_plot = view_elements.UnitChannelPlot('ppg')
 
         self.build()
 
