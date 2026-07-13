@@ -197,7 +197,7 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
         # Brainflow Initialization
         if not is_demo: 
             BOARD_ID = BoardIds.EMOTIBIT_BOARD.value
-            AUX_SAMPLING_RATE = BoardShim.get_sampling_rate(BOARD_ID, BrainFlowPresets.AUXILIARY_PRESET)
+            AUX_SAMPLING_RATE = 100  # Emotibit Firmware 100 Hz PPG
             PPG_CHANNELS = BoardShim.get_ppg_channels(BOARD_ID, BrainFlowPresets.AUXILIARY_PRESET)
             NUM_PPG_CH = len(PPG_CHANNELS)
 

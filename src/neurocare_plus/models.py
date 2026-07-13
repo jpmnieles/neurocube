@@ -166,9 +166,9 @@ class ModelManager:
 
         try:
             # MNE-LSL Initialization
-            inlet_stream = StreamLSL(bufsize=20,            # 25 secs 
+            inlet_stream = StreamLSL(bufsize=20,            # 20 secs 
                                      name=LSL_STREAM_NAME)  # Non-blocking operation
-            sampling_rate = 25  # Change to 100 Hz when PPG is already configured
+            sampling_rate = 100  # Emotibit Firmware 100 Hz PPG
             POLLING_TIME = 1.0/(2.0*sampling_rate)
 
             while True:
