@@ -173,11 +173,11 @@ class UnitChannelPlot:
                 
                 dpg.add_line_series([], [], parent=y_axis_tag, tag=series_tag)
 
-                dpg.add_plot_annotation(label=f"{ 200}", default_value=(-25, 100000), 
+                dpg.add_plot_annotation(label=f"{ 200}", default_value=(-25, 999999), 
                                         offset=(0, 0),  color=[0, 0, 0, 80],
                                         clamped=True, tag=max_y_axis_tag)
                 
-                dpg.add_plot_annotation(label=f"{-200}", default_value=(-25, -100000), 
+                dpg.add_plot_annotation(label=f"{-200}", default_value=(-25, -999999), 
                                         offset=(0, 0),  color=[0, 0, 0, 80],
                                         clamped=True, tag=min_y_axis_tag)
 
