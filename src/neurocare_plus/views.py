@@ -76,8 +76,14 @@ class MainView:
             with dpg.theme(tag=f"color_{i}"):
                 with dpg.theme_component(dpg.mvLineSeries):
                     dpg.add_theme_color(dpg.mvPlotCol_Line, color_pool[i], category=dpg.mvThemeCat_Plots)
+
+        ### Font Sizes###
+        with dpg.font_registry():
+            font_path = "resource/ProggyClean.ttf"  
+            for size in range(1, 201):
+                dpg.add_font(font_path, size, tag=f"dynamic_font_{size}")
             
-        # Setup Wifgets
+        # Setup Widgets
         self.widgets = WidgetManager()
         
         # View Components
@@ -192,13 +198,13 @@ class MonitorTab:
             display_tag='primary_display'
         )
         self.alpha_select = view_elements.ComboDisplayWidget(
-            combo_item_list=['EEG','PPG','IMU'],
-            widget_list=['EEG_widget','PPG_widget','IMU_widget'],
+            combo_item_list=['EEG','PPG','IMU','Temperature'],
+            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget'],
             display_tag='alpha_display'
         )
         self.beta_select = view_elements.ComboDisplayWidget(
-            combo_item_list=['EEG','PPG','IMU'],
-            widget_list=['EEG_widget','PPG_widget','IMU_widget'],
+            combo_item_list=['EEG','PPG','IMU','Temperature'],
+            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget'],
             display_tag='beta_display'
         )
 
@@ -240,7 +246,7 @@ class MonitorTab:
                         
                         ## Display 2B
                         with dpg.child_window(border=False, height=0, tag="beta_display"):
-                            self.beta_select.build()
+                            self.beta_select.build('Temperature')
 
             # Bind the theme
             dpg.bind_item_theme("monitor_table", "table_no_pad_theme")

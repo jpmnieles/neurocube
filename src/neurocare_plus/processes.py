@@ -195,27 +195,45 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
 
     try:
         # Brainflow Initialization
-        if not is_demo: 
+        if not is_demo: # HW Data
             BOARD_ID = BoardIds.EMOTIBIT_BOARD.value
+            # ----- PPG -----#
             AUX_SAMPLING_RATE = 100  # Emotibit Firmware 100 Hz PPG
             PPG_CHANNELS = BoardShim.get_ppg_channels(BOARD_ID, BrainFlowPresets.AUXILIARY_PRESET)
             NUM_PPG_CH = len(PPG_CHANNELS)
+            # ----- EDA/TEMP -----#
+            ANC_SAMPLING_RATE = BoardShim.get_sampling_rate(BOARD_ID, BrainFlowPresets.ANCILLARY_PRESET)  # Emotibit Firmware 15 Hz (EDA: 15 Hz, Temp: 7.5 Hz)
+            EDA_CHANNEL = BoardShim.get_eda_channels(BOARD_ID, BrainFlowPresets.ANCILLARY_PRESET)
+            TEMP_CHANNEL = BoardShim.get_temperature_channels(BOARD_ID, BrainFlowPresets.ANCILLARY_PRESET)[1]  # Only choose the Medical Grade Thermal Sensor
+            ANC_CHANNELS = EDA_CHANNEL + TEMP_CHANNEL
+            NUM_ANC_CH = len(ANC_CHANNELS)
 
-        else:
+        else:  # Demo Data
             BOARD_ID = BoardIds.SYNTHETIC_BOARD.value
-            AUX_SAMPLING_RATE = BoardShim.get_sampling_rate(BOARD_ID)
+            # ----- PPG -----#
+            AUX_SAMPLING_RATE = BoardShim.get_sampling_rate(BOARD_ID)  # Could be 100 Hz
             PPG_CHANNELS = BoardShim.get_eeg_channels(BOARD_ID)[:3]
             NUM_PPG_CH = len(PPG_CHANNELS)
+            # ----- EDA/TEMP -----#
+            ANC_SAMPLING_RATE = BoardShim.get_sampling_rate(BOARD_ID, BrainFlowPresets.AUXILIARY_PRESET)  # Could be 15 Hz
+            ANC_CHANNELS = BoardShim.get_ppg_channels(BOARD_ID, BrainFlowPresets.AUXILIARY_PRESET)  # Temporary Data Stream
+            NUM_ANC_CH = len(ANC_CHANNELS)
                                             
         # Initialization
         CHUNK_SIZE = 2
-        POLLING_TIME = 1.0/100  # Make it 100 Hz first for max PPG sampling rate
+        POLLING_TIME = 1.0/AUX_SAMPLING_RATE  # How fast is the Process being polled (PPG:100 Hz)
 
         # MNE-LSL Initialization
-        LSL_STREAM_NAME = "EMOTIBIT_PPG"
-        info_ppg = StreamInfo(LSL_STREAM_NAME, "PPG", NUM_PPG_CH, AUX_SAMPLING_RATE, "float32", "emotibit_ppg")
+        # ----- PPG -----#
+        LSL_STREAM_NAME_1 = "EMOTIBIT_PPG"
+        info_ppg = StreamInfo(LSL_STREAM_NAME_1, "PPG", NUM_PPG_CH, AUX_SAMPLING_RATE, "float32", "emotibit_ppg")
         info_ppg.set_channel_names(["PPG_Red", "PPG_IR", "PPG_Green"])
-        outlet_stream = StreamOutlet(info_ppg)
+        outlet_stream_1 = StreamOutlet(info_ppg)
+        # ----- EDA/TEMP -----#
+        LSL_STREAM_NAME_2 = "EMOTIBIT_ANC"
+        info_anc = StreamInfo(LSL_STREAM_NAME_2, "Multi", NUM_ANC_CH, ANC_SAMPLING_RATE, "float32", "emotibit_anc")
+        info_anc.set_channel_names(["EDA", "TEMP"])
+        outlet_stream_2 = StreamOutlet(info_anc)
         
         while True:
             try:
@@ -227,7 +245,7 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
                     
                     if not is_demo:
                         params = BrainFlowInputParams()
-                        params.ip_address = "10.2.120.66"  # IP Address is Varying
+                        params.ip_address = "10.2.120.65"  # IP Address is Varying
                         params.ip_port = 3133
                         board = BoardShim(BOARD_ID, params)
                     else:
@@ -286,12 +304,27 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
 
             # Data Ingestion and Streaming Modes
             if is_streaming:  # Mode
-                if board.get_board_data_count() >= CHUNK_SIZE:
-                    data = board.get_board_data(preset=BrainFlowPresets.AUXILIARY_PRESET)  # Get data from Brainflow hardware. With flushing (destructive read)
-                    ppg_data = np.ascontiguousarray(data[PPG_CHANNELS].T.astype(np.float32, copy=False))
-                    outlet_stream.push_chunk(ppg_data)  # Pushing Chunk Size Data to LSL Network
-                    # print(ppg_data)
-
+                if not is_demo:  # HW Data
+                    # ----- PPG -----#
+                    if board.get_board_data_count(preset=BrainFlowPresets.AUXILIARY_PRESET) >= CHUNK_SIZE:
+                        data_1 = board.get_board_data(preset=BrainFlowPresets.AUXILIARY_PRESET)  # Get data from Brainflow hardware. With flushing (destructive read)
+                        ppg_data = np.ascontiguousarray(data_1[PPG_CHANNELS].T.astype(np.float32, copy=False))
+                        outlet_stream_1.push_chunk(ppg_data)  # Pushing Chunk Size Data to LSL Network
+                     # ----- EDA/TEMP -----#
+                    if board.get_board_data_count(preset=BrainFlowPresets.ANCILLARY_PRESET) >= CHUNK_SIZE:
+                        data_2 = board.get_board_data(preset=BrainFlowPresets.ANCILLARY_PRESET)  # Get data from Brainflow hardware. With flushing (destructive read)
+                        anc_data = np.ascontiguousarray(data_2[ANC_CHANNELS].T.astype(np.float32, copy=False))
+                        outlet_stream_2.push_chunk(anc_data)  # Pushing Chunk Size Data to LSL Network
+                else:  # Demo Data
+                    if board.get_board_data_count(preset=BrainFlowPresets.DEFAULT_PRESET) >= CHUNK_SIZE:
+                        data_1 = board.get_board_data(preset=BrainFlowPresets.DEFAULT_PRESET)  # Get data from Brainflow hardware. With flushing (destructive read)
+                        ppg_data = np.ascontiguousarray(data_1[PPG_CHANNELS].T.astype(np.float32, copy=False))
+                        outlet_stream_1.push_chunk(ppg_data)  # Pushing Chunk Size Data to LSL Network
+                     # ----- EDA/TEMP -----#
+                    if board.get_board_data_count(preset=BrainFlowPresets.AUXILIARY_PRESET) >= CHUNK_SIZE:
+                        data_2 = board.get_board_data(preset=BrainFlowPresets.AUXILIARY_PRESET)  # Get data from Brainflow hardware. With flushing (destructive read)
+                        anc_data = np.ascontiguousarray(data_2[ANC_CHANNELS].T.astype(np.float32, copy=False))
+                        outlet_stream_2.push_chunk(anc_data)  # Pushing Chunk Size Data to LSL Network
 
             # Throttling to keep CPU usage low
             time.sleep(POLLING_TIME) 
@@ -302,7 +335,8 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
                                    message=str(e)).model_dump())
     
     finally:
-        del outlet_stream
+        del outlet_stream_1
+        del outlet_stream_2
         if is_streaming:
             board.stop_stream()
         try:

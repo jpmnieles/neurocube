@@ -59,8 +59,53 @@ class UiPresenter:
             self.process_status_mp_queue()
             self.process_eeg_time_series_widget()
             self.process_ppg_time_series_widget()
+            self.process_temp_time_series_widget()
             
             dpg.render_dearpygui_frame()  # Throttling based on the Monitor Refresh Rate
+
+    def process_temp_time_series_widget(self):
+        while True:
+            new_data = False
+            try:
+                data, timestamps = self.display_queues['TEMP_TIME'].get_nowait()
+                new_data = True
+                print(f'[GUI TEMP Display] Data In, Time: {datetime.now()}')
+                print(f'[GUI TEMP Display] timestamps: {timestamps[-5:]}')
+            except queue.Empty:
+                break
+
+            if new_data:
+                # Relative Timestamps
+                window_start_time = local_clock()  # Latest time
+                rel_timestamps =  timestamps - window_start_time
+                rel_timestamps_list = rel_timestamps.tolist()
+
+                vert_scale = dpg.get_value("combo_temp_vert_scale")
+
+                is_auto = True
+
+                if is_auto:
+                    window_time_str = dpg.get_value("combo_temp_time_window")
+                    WINDOW_TIME = PPGPlot.combo2twindow_dict[window_time_str]
+                    time_mask = rel_timestamps > -WINDOW_TIME
+
+                print(f'[GUI PPG Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
+
+
+                # Process only channel which are enabled
+                channel_num = 1
+                dpg.set_value(f"temp_ch{channel_num}_series", [rel_timestamps_list, data.tolist()])
+
+                if is_auto:
+                    data_filtered = data[time_mask]
+                    max_data_filtered = data_filtered.max()
+                    min_data_filtered = data_filtered.min()
+                    dpg.set_value("Temp_widget_data_text", f"{data_filtered.mean():2.2f}°C")
+                    dpg.set_axis_limits(f"temp_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+                    dpg.set_axis_limits(f"temp_ch{channel_num}_y_axis", 
+                        min_data_filtered, max_data_filtered)
+                    dpg.configure_item(f"temp_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
+                    dpg.configure_item(f"temp_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
 
     def process_eeg_time_series_widget(self):
         while True:
@@ -109,14 +154,14 @@ class UiPresenter:
             try:
                 data, timestamps = self.display_queues['PPG_TIME'].get_nowait()
                 new_data = True
-                print(f'[GUI PPG Display] Data In, Time: {datetime.now()}')
-                print(f'[GUI PPG Display] timestamps: {timestamps[-5:]}')
+                # print(f'[GUI PPG Display] Data In, Time: {datetime.now()}')
+                # print(f'[GUI PPG Display] timestamps: {timestamps[-5:]}')
             except queue.Empty:
                 break
 
             if new_data:
                 # Relative Timestamps
-                window_start_time = local_clock()  # Latest time
+                window_start_time = local_clock()  # TODO: Pass as parameter for same time
                 rel_timestamps =  timestamps - window_start_time
                 rel_timestamps_list = rel_timestamps.tolist()
 
@@ -128,7 +173,7 @@ class UiPresenter:
                     WINDOW_TIME = PPGPlot.combo2twindow_dict[window_time_str]
                     time_mask = rel_timestamps > -WINDOW_TIME
 
-                print(f'[GUI PPG Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
+                # print(f'[GUI PPG Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
 
 
                 # Process only channel which are enabled
@@ -204,11 +249,13 @@ class UiPresenter:
         print("[GUI] Clicked Start Stream")
         self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="START_STREAM").model_dump())
         self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action="START_STREAM").model_dump())
+        self.ctrl_queues['ANC_INLET'].put(CtrlMsg(target="Multi", action="START_STREAM").model_dump())
 
     def btn_stop_stream_cb(self):
         print("[GUI] Clicked Stop Stream")
         self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="STOP_STREAM").model_dump())
         self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action="STOP_STREAM").model_dump())
+        self.ctrl_queues['ANC_INLET'].put(CtrlMsg(target="Multi", action="STOP_STREAM").model_dump())
     
     def btn_eeg_open_device_cb(self):
         if 'EEG' in self.cmd_mp_queues:
