@@ -80,8 +80,6 @@ class UiPresenter:
                 rel_timestamps =  timestamps - window_start_time
                 rel_timestamps_list = rel_timestamps.tolist()
 
-                vert_scale = dpg.get_value("combo_temp_vert_scale")
-
                 is_auto = True
 
                 if is_auto:
