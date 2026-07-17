@@ -204,7 +204,7 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
             # ----- EDA/TEMP -----#
             ANC_SAMPLING_RATE = BoardShim.get_sampling_rate(BOARD_ID, BrainFlowPresets.ANCILLARY_PRESET)  # Emotibit Firmware 15 Hz (EDA: 15 Hz, Temp: 7.5 Hz)
             EDA_CHANNEL = BoardShim.get_eda_channels(BOARD_ID, BrainFlowPresets.ANCILLARY_PRESET)
-            TEMP_CHANNEL = BoardShim.get_temperature_channels(BOARD_ID, BrainFlowPresets.ANCILLARY_PRESET)[1]  # Only choose the Medical Grade Thermal Sensor
+            TEMP_CHANNEL = BoardShim.get_temperature_channels(BOARD_ID, BrainFlowPresets.ANCILLARY_PRESET)  # Only choose the Medical Grade Thermal Sensor
             ANC_CHANNELS = EDA_CHANNEL + TEMP_CHANNEL
             NUM_ANC_CH = len(ANC_CHANNELS)
 
