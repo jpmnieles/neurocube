@@ -72,10 +72,17 @@ class MainView:
                 [255, 220, 200, 255], # 23. Apricot
                 [200, 200, 100, 255]  # 24. Khaki/Gold
             ]
+        shade_pool = []
+        for i in range(len(color_pool)):
+            shade_pool.append(color_pool[i][:3]+[100])
+
         for i in range(25):
             with dpg.theme(tag=f"color_{i}"):
                 with dpg.theme_component(dpg.mvLineSeries):
                     dpg.add_theme_color(dpg.mvPlotCol_Line, color_pool[i], category=dpg.mvThemeCat_Plots)
+                with dpg.theme_component(dpg.mvShadeSeries):
+                    dpg.add_theme_color(dpg.mvPlotCol_Line, shade_pool[i], category=dpg.mvThemeCat_Plots)
+                    dpg.add_theme_color(dpg.mvPlotCol_Fill, shade_pool[i], category=dpg.mvThemeCat_Plots)
 
         ### Font Sizes###
         with dpg.font_registry():

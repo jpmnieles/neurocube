@@ -185,6 +185,48 @@ class UnitChannelPlot:
             dpg.bind_item_theme(series_tag, f"color_{channel_num-1}")
 
 
+class UnitShadeChannelPlot:
+    def __init__(self, channel_type):
+        self.channel_type = channel_type
+
+    def build(self, channel_num, height):
+        x_axis_tag = f"{self.channel_type}_ch{channel_num}_x_axis"
+        y_axis_tag = f"{self.channel_type}_ch{channel_num}_y_axis"
+        series_tag = f"{self.channel_type}_ch{channel_num}_series"
+        shade_tag = f"{self.channel_type}_ch{channel_num}_shade"
+        plot_tag = f"{self.channel_type}_ch{channel_num}_plot"
+        group_ch_plot_tag = f"{self.channel_type}_ch{channel_num}_group_ch_plot"
+        max_y_axis_tag = f"{self.channel_type}_ch{channel_num}_max_y_axis"
+        min_y_axis_tag = f"{self.channel_type}_ch{channel_num}_min_y_axis"
+
+        with dpg.group(horizontal=True, tag=group_ch_plot_tag, height=height):
+            # Left Panel: Clean borderless text controls
+            with dpg.child_window(auto_resize_x=True, width=15, height=0, border=False, no_scrollbar=True):
+                dpg.add_text(f"{channel_num}")
+
+            # Right Panel: Plot Viewport Area
+            with dpg.plot(height=0, width=-1, tag=plot_tag):
+                
+                dpg.add_plot_axis(dpg.mvXAxis, tag=x_axis_tag, no_tick_labels=True, no_tick_marks=False, no_gridlines=True)
+                dpg.add_plot_axis(dpg.mvYAxis, tag=y_axis_tag, no_tick_labels=True, no_tick_marks=False)
+                
+                dpg.add_line_series([], [], parent=y_axis_tag, tag=series_tag)
+                dpg.add_shade_series([], [], y2=[], parent=y_axis_tag, tag=shade_tag)
+
+                dpg.add_plot_annotation(label=f"{ 200}", default_value=(-25, 999999), 
+                                        offset=(0, 0),  color=[0, 0, 0, 80],
+                                        clamped=True, tag=max_y_axis_tag)
+                
+                dpg.add_plot_annotation(label=f"{-200}", default_value=(-25, -999999), 
+                                        offset=(0, 0),  color=[0, 0, 0, 80],
+                                        clamped=True, tag=min_y_axis_tag)
+
+            dpg.bind_item_theme(plot_tag, "plot_theme")
+            dpg.bind_item_theme(series_tag, f"color_{channel_num-1}")
+            dpg.bind_item_theme(shade_tag, f"color_{channel_num-1}")
+
+
+
 class EnEEGChannel:
     def __init__(self, channel_num):
         self.channel_num = channel_num

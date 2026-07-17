@@ -233,7 +233,7 @@ class TempPlot:
         self.parent = parent
         self.data_text = f"{tag}_data_text"
 
-        self.temp_plot = view_elements.UnitChannelPlot('temp')
+        self.temp_plot = view_elements.UnitShadeChannelPlot('temp')
 
         self.build()
 

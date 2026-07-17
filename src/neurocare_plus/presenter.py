@@ -92,7 +92,10 @@ class UiPresenter:
 
                 # Process only channel which are enabled
                 channel_num = 1
-                dpg.set_value(f"temp_ch{channel_num}_series", [rel_timestamps_list, data.tolist()])
+                data_list = data.tolist()
+                data_bottom_list = (data-99999).tolist()
+                dpg.set_value(f"temp_ch{channel_num}_series", [rel_timestamps_list, data_list])
+                dpg.set_value(f"temp_ch{channel_num}_shade", [rel_timestamps_list, data_list, data_bottom_list])
 
                 if is_auto:
                     data_filtered = data[time_mask]
