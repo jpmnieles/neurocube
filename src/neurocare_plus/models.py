@@ -285,9 +285,8 @@ class ModelManager:
 
                     # Connect Once to LSL Stream
                     if not is_initialized:
-                        inlet_stream.connect(acquisition_delay=None, processing_flags='all')
-                        # inlet_stream.filter(5.0, 50.0, picks="ppg")  # 4th Order Butterworth Filter  # TODO: Command Filter 
-                        # inlet_stream.notch_filter(60, picks="ppg")
+                        inlet_stream.connect(acquisition_delay=None, processing_flags='all') 
+                        inlet_stream.filter(0.5, 8.0) # TODO: Command Filter 
                         is_initialized = True
 
                     # Data Ingestion from LSL Stream
