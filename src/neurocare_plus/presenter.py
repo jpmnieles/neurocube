@@ -55,16 +55,19 @@ class UiPresenter:
             # Dynamic Sizing
             self.update_window_layouts()
 
+            # Timing
+            window_start_time = local_clock()
+
             # Thread Functions
             self.process_status_mp_queue()
-            self.process_eeg_time_series_widget()
-            self.process_ppg_time_series_widget()
-            self.process_temp_time_series_widget()
-            self.process_gsr_time_series_widget()
+            self.process_eeg_time_series_widget(window_start_time)
+            self.process_ppg_time_series_widget(window_start_time)
+            self.process_temp_time_series_widget(window_start_time)
+            self.process_gsr_time_series_widget(window_start_time)
             
             dpg.render_dearpygui_frame()  # Throttling based on the Monitor Refresh Rate
 
-    def process_temp_time_series_widget(self):
+    def process_temp_time_series_widget(self, window_start_time):
         while True:
             new_data = False
             try:
@@ -77,7 +80,6 @@ class UiPresenter:
 
             if new_data:
                 # Relative Timestamps
-                window_start_time = local_clock()  # Latest time
                 rel_timestamps =  timestamps - window_start_time
                 rel_timestamps_list = rel_timestamps.tolist()
 
@@ -109,7 +111,7 @@ class UiPresenter:
                     dpg.configure_item(f"temp_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
                     dpg.configure_item(f"temp_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
 
-    def process_eeg_time_series_widget(self):
+    def process_eeg_time_series_widget(self, window_start_time):
         while True:
             new_data = False
             try:
@@ -122,7 +124,6 @@ class UiPresenter:
 
             if new_data:
                 # Relative Timestamps
-                window_start_time = local_clock()  # Latest time
                 rel_timestamps =  timestamps - window_start_time
                 rel_timestamps_list = rel_timestamps.tolist()
 
@@ -150,7 +151,7 @@ class UiPresenter:
                             dpg.configure_item(f"eeg_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
                             dpg.configure_item(f"eeg_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
                             
-    def process_ppg_time_series_widget(self):
+    def process_ppg_time_series_widget(self, window_start_time):
         while True:
             new_data = False
             try:
@@ -163,7 +164,6 @@ class UiPresenter:
 
             if new_data:
                 # Relative Timestamps
-                window_start_time = local_clock()  # TODO: Pass as parameter for same time
                 rel_timestamps =  timestamps - window_start_time
                 rel_timestamps_list = rel_timestamps.tolist()
 
@@ -192,7 +192,7 @@ class UiPresenter:
                         dpg.configure_item(f"ppg_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
                         dpg.configure_item(f"ppg_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
 
-    def process_gsr_time_series_widget(self):
+    def process_gsr_time_series_widget(self, window_start_time):
         while True:
             new_data = False
             try:
@@ -205,7 +205,6 @@ class UiPresenter:
 
             if new_data:
                 # Relative Timestamps
-                window_start_time = local_clock()  # Latest time
                 rel_timestamps =  timestamps - window_start_time
                 rel_timestamps_list = rel_timestamps.tolist()
 
