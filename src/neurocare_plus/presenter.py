@@ -8,7 +8,7 @@ from models import CtrlMsg
 from views import MainView
 from processes import CmdMsg
 
-from widgets import EEGPlot, PPGPlot
+from widgets import EEGPlot, PPGPlot, TempPlot, GSRPlot
 
 
 class UiPresenter:
@@ -60,6 +60,7 @@ class UiPresenter:
             self.process_eeg_time_series_widget()
             self.process_ppg_time_series_widget()
             self.process_temp_time_series_widget()
+            self.process_gsr_time_series_widget()
             
             dpg.render_dearpygui_frame()  # Throttling based on the Monitor Refresh Rate
 
@@ -69,8 +70,8 @@ class UiPresenter:
             try:
                 data, timestamps = self.display_queues['TEMP_TIME'].get_nowait()
                 new_data = True
-                print(f'[GUI TEMP Display] Data In, Time: {datetime.now()}')
-                print(f'[GUI TEMP Display] timestamps: {timestamps[-5:]}')
+                # print(f'[GUI TEMP Display] Data In, Time: {datetime.now()}')
+                # print(f'[GUI TEMP Display] timestamps: {timestamps[-5:]}')
             except queue.Empty:
                 break
 
@@ -84,10 +85,10 @@ class UiPresenter:
 
                 if is_auto:
                     window_time_str = dpg.get_value("combo_temp_time_window")
-                    WINDOW_TIME = PPGPlot.combo2twindow_dict[window_time_str]
+                    WINDOW_TIME = TempPlot.combo2twindow_dict[window_time_str]
                     time_mask = rel_timestamps > -WINDOW_TIME
 
-                print(f'[GUI PPG Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
+                print(f'[GUI TEMP Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
 
 
                 # Process only channel which are enabled
@@ -114,8 +115,8 @@ class UiPresenter:
             try:
                 data, timestamps = self.display_queues['EEG_TIME'].get_nowait()
                 new_data = True
-                print(f'[GUI Display] Data In, Time: {datetime.now()}')
-                print(f'[GUI Display] timestamps: {timestamps[-5:]}')
+                # print(f'[GUI Display] Data In, Time: {datetime.now()}')
+                # print(f'[GUI Display] timestamps: {timestamps[-5:]}')
             except queue.Empty:
                 break
 
@@ -133,7 +134,7 @@ class UiPresenter:
                     WINDOW_TIME = EEGPlot.combo2twindow_dict[window_time_str]
                     time_mask = rel_timestamps > -WINDOW_TIME
 
-                print(f'[GUI Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
+                # print(f'[GUI Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
                 
                 # Process only channel which are enabled
                 for channel_num in range(1,9):
@@ -190,7 +191,51 @@ class UiPresenter:
                             min_data_filtered, max_data_filtered)
                         dpg.configure_item(f"ppg_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
                         dpg.configure_item(f"ppg_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
-                        
+
+    def process_gsr_time_series_widget(self):
+        while True:
+            new_data = False
+            try:
+                data, timestamps = self.display_queues['GSR_TIME'].get_nowait()
+                new_data = True
+                print(f'[GUI GSR Display] Data In, Time: {datetime.now()}')
+                print(f'[GUI GSR Display] timestamps: {timestamps[-5:]}')
+            except queue.Empty:
+                break
+
+            if new_data:
+                # Relative Timestamps
+                window_start_time = local_clock()  # Latest time
+                rel_timestamps =  timestamps - window_start_time
+                rel_timestamps_list = rel_timestamps.tolist()
+
+                is_auto = True
+
+                if is_auto:
+                    window_time_str = dpg.get_value("combo_gsr_time_window")
+                    WINDOW_TIME = GSRPlot.combo2twindow_dict[window_time_str]
+                    time_mask = rel_timestamps > -WINDOW_TIME
+
+                print(f'[GUI GSR Display] RELATIVE TIMESTAMP {rel_timestamps[-1]}')
+
+
+                # Process only channel which are enabled
+                channel_num = 2
+                data_list = data.tolist()
+                data_bottom_list = (data-99999).tolist()
+                dpg.set_value(f"gsr_ch{channel_num}_series", [rel_timestamps_list, data_list])
+                dpg.set_value(f"gsr_ch{channel_num}_shade", [rel_timestamps_list, data_list, data_bottom_list])
+
+                if is_auto:
+                    data_filtered = data[time_mask]
+                    max_data_filtered = data_filtered.max()
+                    min_data_filtered = data_filtered.min()
+                    dpg.set_value("GSR_widget_data_text", f"{data_filtered.mean():2.2f}uS")
+                    dpg.set_axis_limits(f"gsr_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+                    dpg.set_axis_limits(f"gsr_ch{channel_num}_y_axis", 
+                        min_data_filtered, max_data_filtered)
+                    dpg.configure_item(f"gsr_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
+                    dpg.configure_item(f"gsr_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")                    
 
     def process_status_mp_queue(self):
         # Process all pending status messages before rendering the frame

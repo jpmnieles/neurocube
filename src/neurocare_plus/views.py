@@ -200,18 +200,18 @@ class MonitorTab:
     def __init__(self):
         
         self.primary_select = view_elements.ComboDisplayWidget(
-            combo_item_list=['EEG','PPG','IMU'],
-            widget_list=['EEG_widget','PPG_widget','IMU_widget'],
+            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA'],
+            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget'],
             display_tag='primary_display'
         )
         self.alpha_select = view_elements.ComboDisplayWidget(
-            combo_item_list=['EEG','PPG','IMU','Temperature'],
-            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget'],
+            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA'],
+            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget'],
             display_tag='alpha_display'
         )
         self.beta_select = view_elements.ComboDisplayWidget(
-            combo_item_list=['EEG','PPG','IMU','Temperature'],
-            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget'],
+            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA'],
+            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget'],
             display_tag='beta_display'
         )
 
@@ -253,7 +253,7 @@ class MonitorTab:
                         
                         ## Display 2B
                         with dpg.child_window(border=False, height=0, tag="beta_display"):
-                            self.beta_select.build('Temperature')
+                            self.beta_select.build('GSR/EDA')
 
             # Bind the theme
             dpg.bind_item_theme("monitor_table", "table_no_pad_theme")

@@ -16,7 +16,8 @@ class WidgetManager:
              "PPG_widget": PPGPlot("PPG_widget", parent="hidden_stage"),
              "IMU_widget": view_elements.DynamicPlot("IMU_widget", "IMU", 
                                                      height=0, parent="hidden_stage"),
-             "Temp_widget": TempPlot("Temp_widget", parent="hidden_stage")
+             "Temp_widget": TempPlot("Temp_widget", parent="hidden_stage"),
+             "GSR_widget": GSRPlot("GSR_widget", parent="hidden_stage"),
         }
 
     def build_hidden_staging_window(self):
@@ -249,7 +250,7 @@ class TempPlot:
                 with dpg.table_row():
                     # 1st Column
                     # Data Text
-                    dpg.add_text("30°C", tag=self.data_text)
+                    dpg.add_text("36°C", tag=self.data_text)
                     font_size = 20
                     dpg.bind_item_font(self.data_text, f"dynamic_font_{font_size}")
  
@@ -275,4 +276,63 @@ class TempPlot:
         channel_num = 1
         dpg.set_axis_limits(f"temp_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
         dpg.set_axis_limits("temp_static_x_axis", -WINDOW_TIME, 0)
-        
+    
+
+class GSRPlot:
+
+    combo2twindow_dict = {
+        "1 sec": 1,
+        "3 sec": 3,
+        "5 sec": 5,
+        "10 sec": 10,
+        "20 sec": 20,
+    }
+
+    def __init__(self, tag, parent=0, height=0):
+        self.tag = tag
+        self.height = height
+        self.parent = parent
+        self.data_text = f"{tag}_data_text"
+
+        self.temp_plot = view_elements.UnitShadeChannelPlot('gsr')
+
+        self.build()
+
+    def build(self):
+
+        with dpg.child_window(tag=self.tag, border=True, height=self.height, width=-1, parent=self.parent):
+            # Header
+            with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit, tag="gsr_options_table"):
+                dpg.add_table_column(width_stretch=True) # Full width for the header
+                dpg.add_table_column(width_fixed=True)   # Tight fit for the button
+                dpg.add_table_column(width_fixed=True)
+                
+                with dpg.table_row():
+                    # 1st Column
+                    # Data Text
+                    dpg.add_text("5uS", tag=self.data_text)
+                    font_size = 20
+                    dpg.bind_item_font(self.data_text, f"dynamic_font_{font_size}")
+ 
+                    # 2nd Column
+                    dpg.add_spacer(height=1)
+                    
+                    # 3rd Column
+                    dpg.add_combo(items=["1 sec","3 sec","5 sec","10 sec","20 sec"], 
+                                  default_value="5 sec", tag="combo_gsr_time_window", width=80,
+                                  callback=self.time_window_callback)
+
+            # Data Plot
+            self.temp_plot.build(channel_num=2,height=-45)
+
+            # Plotting just the Axis
+            view_elements.AxisOnlyPlot('gsr').build()
+
+            # Default Value Callback
+            self.time_window_callback(None, "5 sec", None)
+
+    def time_window_callback(self, sender, app_data, user_data):
+        WINDOW_TIME = self.combo2twindow_dict[app_data]
+        channel_num = 1
+        dpg.set_axis_limits(f"temp_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+        dpg.set_axis_limits("temp_static_x_axis", -WINDOW_TIME, 0)    

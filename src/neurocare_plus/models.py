@@ -221,6 +221,12 @@ class ModelManager:
                                 print("[GSR_IN] Queue Full")
                                 dropped_data, dropped_timestamp = self.data_queues["GSR_IN"].get_nowait()
                                 self.data_queues["GSR_IN"].put_nowait((data[0,:], timestamps))
+                            try:
+                                self.display_queues["GSR_TIME"].put_nowait((data[0,:], timestamps))
+                            except queue.Full:
+                                print("[GSR_TIME] Queue Full")
+                                dropped_data, dropped_timestamp = self.display_queues["GSR_OUT"].get_nowait()
+                                self.display_queues["GSR_TIME"].put_nowait((data[0,:], timestamps))
                             #----- Temperature -----#
                             try:
                                 self.display_queues["TEMP_TIME"].put_nowait((data[1,:], timestamps))
