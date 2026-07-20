@@ -159,6 +159,7 @@ class PPGPlot:
         self.tag = tag
         self.height = height
         self.parent = parent
+        self.data_text = f"{tag}_data_text"
 
         self.ppg_ch_plot = view_elements.UnitChannelPlot('ppg')
 
@@ -175,7 +176,9 @@ class PPGPlot:
                 
                 with dpg.table_row():
                     # 1st Column
-                    dpg.add_spacer(height=1)
+                    dpg.add_text("1:Red | 2:IR | 3:Green", tag=self.data_text)
+                    font_size = 20
+                    dpg.bind_item_font(self.data_text, f"dynamic_font_{font_size}")
                         
                     # 2nd Column
                     with dpg.group(horizontal=True, indent=4):
