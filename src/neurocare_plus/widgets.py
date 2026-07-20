@@ -297,7 +297,7 @@ class GSRPlot:
         self.parent = parent
         self.data_text = f"{tag}_data_text"
 
-        self.temp_plot = view_elements.UnitShadeChannelPlot('gsr')
+        self.gsr_plot = view_elements.UnitShadeChannelPlot('gsr')
 
         self.build()
 
@@ -326,7 +326,7 @@ class GSRPlot:
                                   callback=self.time_window_callback)
 
             # Data Plot
-            self.temp_plot.build(channel_num=2,height=-45)
+            self.gsr_plot.build(channel_num=2,height=-45)
 
             # Plotting just the Axis
             view_elements.AxisOnlyPlot('gsr').build()
@@ -336,6 +336,6 @@ class GSRPlot:
 
     def time_window_callback(self, sender, app_data, user_data):
         WINDOW_TIME = self.combo2twindow_dict[app_data]
-        channel_num = 1
-        dpg.set_axis_limits(f"temp_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
-        dpg.set_axis_limits("temp_static_x_axis", -WINDOW_TIME, 0)    
+        channel_num = 2
+        dpg.set_axis_limits(f"gsr_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+        dpg.set_axis_limits("gsr_static_x_axis", -WINDOW_TIME, 0)    
