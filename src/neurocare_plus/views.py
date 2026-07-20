@@ -47,8 +47,8 @@ class MainView:
         ### Colors  ###
         color_pool = [
                 [255, 100, 100, 255], # 0. Bright Red
-                [100, 255, 100, 255], # 1. Bright Green
-                [100, 200, 255, 255], # 2. Light Blue
+                [100, 200, 255, 255], # 1. Light Blue
+                [100, 255, 100, 255], # 2. Bright Green
                 [255, 255, 100, 255], # 3. Yellow
                 [255, 100, 255, 255], # 4. Magenta
                 [100, 255, 255, 255], # 5. Cyan
