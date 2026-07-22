@@ -104,25 +104,33 @@ def eeg_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
 
                     if not board.is_prepared():
                         board.prepare_session()
-                        status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                        status_queue.put(StatusMpMsg(source=process_id,
+                                                     message= "OpenBCI device successfully opened",
+                                                     state=action).model_dump())
                 
                 elif action == "CLOSE_DEVICE":
                     board.release_session()
                     is_streaming = False
                     in_impedance_mode = False
-                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id,
+                                                 message= "OpenBCI device successfully closed",
+                                                 state=action).model_dump())
                 
                 elif action == "START_STREAM":
                     board.start_stream()
                     is_streaming = True
                     in_impedance_mode = False
-                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id, 
+                                                 message= "OpenBCI device started streaming raw data",
+                                                 state=action).model_dump())
                 
                 elif action == "STOP_STREAM":
                     board.stop_stream()
                     is_streaming = False
                     in_impedance_mode = False
-                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id,
+                                                 message= "OpenBCI device stopped streaming raw data",
+                                                 state=action).model_dump())
                 
                 elif action == "START_RECORD":
                     now = datetime.now()
@@ -131,20 +139,24 @@ def eeg_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
                     board.start_stream(f"file://raw/{filename}:w")  # Saving to a file
                     is_streaming = True
                     in_impedance_mode = False
-                    status_queue.put(StatusMpMsg(source=process_id, state=action,
-                                               message=f"Raw data streaming at {filename}").model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id, 
+                                                 message=f"OpenBCI device started streaming and recording raw data at {filename}",
+                                                 state=action).model_dump())
                 
                 elif action == "STOP_RECORD":
                     board.stop_stream()
                     is_streaming = False
                     in_impedance_mode = False
-                    status_queue.put(StatusMpMsg(source=process_id, state=action,
-                                               message=f"Raw data saved at {filename}").model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id, 
+                                                 message=f"OpenBCI device stopped streaming and saved raw data at {filename}",
+                                                 state=action).model_dump())
                     
                 elif action == "IMPEDANCE_MODE":
                     is_streaming = False
                     in_impedance_mode = True
-                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id,
+                                                 message=f"OpenBCI device is in impedance mode",
+                                                 state=action).model_dump())
 
                 elif action == "EXIT":
                     break
@@ -255,22 +267,30 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
 
                     if not board.is_prepared():
                         board.prepare_session()
-                        status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                        status_queue.put(StatusMpMsg(source=process_id,
+                                                     message= "Emotibit device successfully opened",
+                                                     state=action).model_dump())
                 
                 elif action == "CLOSE_DEVICE":
                     board.release_session()
                     is_streaming = False
-                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id,
+                                                 message= "Emotibit device successfully closed",
+                                                 state=action).model_dump())
                 
                 elif action == "START_STREAM":
                     board.start_stream()
                     is_streaming = True
-                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id,
+                                                 message= "Emotibit device started streaming raw data",
+                                                 state=action).model_dump())
                 
                 elif action == "STOP_STREAM":
                     board.stop_stream()
                     is_streaming = False
-                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id,
+                                                 message= "Emotibit device stopped streaming raw data",
+                                                 state=action).model_dump())
                 
                 elif action == "START_RECORD":
                     now = datetime.now()
@@ -278,19 +298,16 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
                     filename = f"brainflow_raw_{timestamp}.csv"
                     board.start_stream(f"file://raw/{filename}:w")  # Saving to a file
                     is_streaming = True
-                    in_impedance_mode = False
-                    status_queue.put(StatusMpMsg(source=process_id, state=action,
-                                               message=f"Raw data streaming at {filename}").model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id,
+                                                 message=f"Emotibit device started streaming and recording raw data at {filename}",
+                                                 state=action).model_dump())
                 
                 elif action == "STOP_RECORD":
                     board.stop_stream()
                     is_streaming = False
-                    status_queue.put(StatusMpMsg(source=process_id, state=action,
-                                               message=f"Raw data saved at {filename}").model_dump())
-                    
-                elif action == "IMPEDANCE_MODE":
-                    is_streaming = False
-                    status_queue.put(StatusMpMsg(source=process_id, state=action).model_dump())
+                    status_queue.put(StatusMpMsg(source=process_id, 
+                                                 message=f"Emotibit device stopped streaming and saved raw data at {filename}",
+                                                 state=action).model_dump())
 
                 elif action == "EXIT":
                     break
