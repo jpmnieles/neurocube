@@ -102,6 +102,7 @@ class MainView:
         self.eeg_tab = EEGTab()
         self.smartwatch_tab = SmartwatchTab()
         self.medicalforms_tab = MedicalFormsTab()
+        self.psychopy_tab = PsychoPyTab()
 
         dpg.show_metrics()
     
@@ -123,6 +124,7 @@ class MainView:
                     with dpg.tab_bar():
                         self.monitor_tab.build()
                         self.medicalforms_tab.build()
+                        self.psychopy_tab.build()
             
             # Logger Panel
             self.logger_panel.build()
@@ -194,6 +196,33 @@ class LoggerPanel:
         dpg.add_separator()
         with dpg.child_window(height=0, border=False, no_scrollbar=False, tag="status_window", label="Console Log", tracked=True):
             dpg.add_text("System active.\n", tag="log_stream", color=[200, 200, 200])
+
+
+class PsychoPyTab:
+
+    def build(self):
+        with dpg.tab(label="PsychoPy"):
+            with dpg.child_window(border=False, height=0):
+                dpg.add_text("ERP Experiment", color=[150, 150, 255])
+                dpg.add_separator()
+                dpg.add_spacer(height=10)
+
+                dpg.add_text("Ready", tag="psychopy_status")
+                with dpg.group(horizontal=True):
+                    with dpg.drawlist(width=20, height=24):
+                        dpg.draw_circle(
+                            center=[10, 12],
+                            radius=6,
+                            color=[128, 128, 128, 255],
+                            fill=[128, 128, 128, 255],
+                            tag="psychopy_indicator"
+                        )
+                    dpg.add_button(
+                        label="Run ERP Experiment",
+                        tag="psychopy_run_btn",
+                        width=220,
+                        height=32
+                    )
 
 
 class MonitorTab:
