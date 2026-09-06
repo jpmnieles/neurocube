@@ -33,6 +33,7 @@ class UiPresenter:
         # Status Flags
         self.is_eeg_connected = False
         self.is_emotibit_connected = False
+        self.is_psychopy_running = False
 
     def setup_callbacks(self):
         """Setup Model Callbacks"""
@@ -40,6 +41,7 @@ class UiPresenter:
         dpg.set_item_callback("stop_stream_btn", self.btn_stop_stream_cb)
         dpg.set_item_callback("btn_eeg_device_connect", self.btn_eeg_open_device_cb)
         dpg.set_item_callback("btn_emotibit_device_connect", self.btn_emotibit_open_device_cb)
+        dpg.set_item_callback("psychopy_run_btn", self.btn_psychopy_run_cb)
 
     def setup(self):
         # Start the Model Threads
@@ -302,6 +304,30 @@ class UiPresenter:
                         dpg.configure_item("btn_emotibit_device_connect"+"_indicator", color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
                         dpg.configure_item("btn_emotibit_device_connect", label="Start Device")
 
+                ### Status Messages ###
+                if status_msg['source'] == "PSYCHOPY":
+                    
+                    if status_msg['state'] == "START":
+                        self.is_psychopy_running = True
+                        dpg.set_value("psychopy_status", "Running")
+                        dpg.configure_item("psychopy_indicator", color=[0, 255, 0, 255], fill=[0, 255, 0, 255])
+                        dpg.configure_item("psychopy_run_btn", enabled=False)
+                    elif status_msg['state'] == "EXIT":
+                        self.is_psychopy_running = False
+                        dpg.set_value("psychopy_status", "Ready")
+                        dpg.configure_item("psychopy_indicator", color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
+                        dpg.configure_item("psychopy_run_btn", enabled=True)
+                        if self.process_manager:
+                            self.process_manager.stop_process("PSYCHOPY")
+                    elif status_msg['state'] == "ERROR":
+                        self.is_psychopy_running = False
+                        dpg.set_value("psychopy_status", "Error")
+                        dpg.configure_item("psychopy_indicator", color=[255, 0, 0, 255], fill=[255, 0, 0, 255])
+                        dpg.configure_item("psychopy_run_btn", enabled=True)
+                        if self.process_manager:
+                            self.process_manager.stop_process("PSYCHOPY")
+
+
             except queue.Empty:
                 break  # No more multiprocessing status messages
 
@@ -356,6 +382,16 @@ class UiPresenter:
                 # 2. Kill the OS Process
                 if self.process_manager:
                     self.process_manager.stop_process("EMOTIBIT")
+
+    def btn_psychopy_run_cb(self):
+        if self.is_psychopy_running or not self.process_manager:
+            return
+
+        self.is_psychopy_running = True
+        dpg.set_value("psychopy_status", "Starting")
+        dpg.configure_item("psychopy_indicator", color=[255, 200, 0, 255], fill=[255, 200, 0, 255])
+        dpg.configure_item("psychopy_run_btn", enabled=False)
+        self.process_manager.start_process("PSYCHOPY")
 
     def update_window_layouts(self):
         # ----- Monitor Tab Secondary Display (For Alpha and Beta Displays) -----#

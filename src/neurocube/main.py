@@ -4,7 +4,7 @@ import multiprocessing as mp
 from models import ModelManager
 from views import MainView
 from presenter import UiPresenter
-from processes import eeg_process, emotibit_process
+from processes import eeg_process, emotibit_process, psychopy_process
 
 # 1. Create a Process Manager to handle on-demand creation
 class ProcessManager:
@@ -12,6 +12,7 @@ class ProcessManager:
         self.cmd_queues = cmd_queues
         self.status_queue = status_queue
         self.is_demo = is_demo
+        self.ctx = mp.get_context()
         self.active_workers = {}
 
     def start_process(self, name):
@@ -23,15 +24,21 @@ class ProcessManager:
 
         print(f"Spinning up {name} process...")
         if name == "EEG":
-            p = mp.Process(
+            p = self.ctx.Process(
                 target=eeg_process, 
                 args=(self.cmd_queues["EEG"], self.status_queue, self.is_demo),
                 daemon=True
             )
         elif name == "EMOTIBIT":
-            p = mp.Process(
+            p = self.ctx.Process(
                 target=emotibit_process, 
                 args=(self.cmd_queues["EMOTIBIT"], self.status_queue, self.is_demo),
+                daemon=True
+            )
+        elif name == "PSYCHOPY":
+            p = self.ctx.Process(
+                target=psychopy_process,
+                args=(self.status_queue,),
                 daemon=True
             )
         else:
@@ -43,8 +50,15 @@ class ProcessManager:
     def stop_process(self, name):
         """Stops a specific process."""
         if name in self.active_workers and self.active_workers[name].is_alive():
+            if name == "PSYCHOPY":
+                self.active_workers[name].terminate()
+                self.active_workers[name].join()
+                del self.active_workers[name]
+                print(f"Process {name} stopped.")
+                return
+
             # Send graceful exit command
-            self.cmd_queues[name].put({"target": name, "action": "EXIT", "payload": None})
+            self.cmd_queues[name].put({"target": name, "action": "EXIT", "data": None})
             
             # Wait for it to close, forcefully terminate if hung
             self.active_workers[name].join(timeout=1.0)
@@ -64,12 +78,20 @@ class ProcessManager:
 def main(is_demo=True):
     mp.freeze_support()
 
+    # Cross-platform multiprocessing safety
+    if sys.platform.startswith('linux'):
+        mp.set_start_method('forkserver', force=True)
+    else:
+        mp.set_start_method('spawn', force=True)
+    
+    ctx = mp.get_context()
+
     # 2. Keep queue initialization in main
     cmd_mp_queues = {
-        "EEG": mp.Queue(),
-        "EMOTIBIT": mp.Queue()
+        "EEG": ctx.Queue(),
+        "EMOTIBIT": ctx.Queue()
     }
-    status_mp_queue = mp.Queue()
+    status_mp_queue = ctx.Queue()
 
     # 3. Initialize the Process Manager instead of raw workers
     process_manager = ProcessManager(cmd_mp_queues, status_mp_queue, is_demo)

@@ -22,11 +22,11 @@ class CmdMsg(BaseModel):
     data: Optional[Dict[str, Any]] = None   # Additional parameters (e.g., sample rate, channels)
 
 class StatusMpMsg(BaseModel):
-    source: Literal["EEG", "EMOTIBIT"]
+    source: Literal["EEG", "EMOTIBIT", "PSYCHOPY"]
     state: Literal["OPEN_DEVICE", "CLOSE_DEVICE",
                    "START_STREAM", "STOP_STREAM",
                    "START_RECORD", "STOP_RECORD", 
-                   "IMPEDANCE MODE", "ERROR", "EXIT"]
+                   "IMPEDANCE MODE", "START", "ERROR", "EXIT"]
     message: Optional[str] = None  # Error Trace
     data: Optional[Dict[str, Any]] = None   # Payload (e.g., battery level, impedance values)
 
@@ -363,3 +363,35 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
             pass
         status_queue.put(StatusMpMsg(source=process_id, state="EXIT",
                                    message="Exiting Process").model_dump())
+
+
+def psychopy_process(status_queue: mp.Queue):
+    process_id = "PSYCHOPY"
+    status_queue.put(StatusMpMsg(
+        source=process_id,
+        state="START",
+        message="PsychoPy experiment started"
+    ).model_dump())
+
+    try:
+        try:
+            from .exps import erp_core
+        except ImportError:
+            from exps import erp_core
+
+        erp_core.main()
+    except SystemExit:
+        # PsychoPy uses core.quit(), which raises SystemExit on normal exit.
+        pass
+    except Exception as e:
+        status_queue.put(StatusMpMsg(
+            source=process_id,
+            state="ERROR",
+            message=str(e)
+        ).model_dump())
+    finally:
+        status_queue.put(StatusMpMsg(
+            source=process_id,
+            state="EXIT",
+            message="PsychoPy experiment finished"
+        ).model_dump())
