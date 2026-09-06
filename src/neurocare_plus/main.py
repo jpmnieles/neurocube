@@ -6,46 +6,88 @@ from views import MainView
 from presenter import UiPresenter
 from processes import eeg_process, emotibit_process
 
+# 1. Create a Process Manager to handle on-demand creation
+class ProcessManager:
+    def __init__(self, cmd_queues, status_queue, is_demo):
+        self.cmd_queues = cmd_queues
+        self.status_queue = status_queue
+        self.is_demo = is_demo
+        self.active_workers = {}
+
+    def start_process(self, name):
+        """Starts a process dynamically by name."""
+        # Prevent starting if it's already running
+        if name in self.active_workers and self.active_workers[name].is_alive():
+            print(f"Process {name} is already running.")
+            return
+
+        print(f"Spinning up {name} process...")
+        if name == "EEG":
+            p = mp.Process(
+                target=eeg_process, 
+                args=(self.cmd_queues["EEG"], self.status_queue, self.is_demo),
+                daemon=True
+            )
+        elif name == "EMOTIBIT":
+            p = mp.Process(
+                target=emotibit_process, 
+                args=(self.cmd_queues["EMOTIBIT"], self.status_queue, self.is_demo),
+                daemon=True
+            )
+        else:
+            raise ValueError(f"Unknown process name: {name}")
+
+        p.start()
+        self.active_workers[name] = p
+
+    def stop_process(self, name):
+        """Stops a specific process."""
+        if name in self.active_workers and self.active_workers[name].is_alive():
+            # Send graceful exit command
+            self.cmd_queues[name].put({"target": name, "action": "EXIT", "payload": None})
+            
+            # Wait for it to close, forcefully terminate if hung
+            self.active_workers[name].join(timeout=1.0)
+            if self.active_workers[name].is_alive():
+                self.active_workers[name].terminate()
+                self.active_workers[name].join()
+            
+            del self.active_workers[name]
+            print(f"Process {name} stopped.")
+
+    def stop_all(self):
+        """Helper to shut down everything during app exit."""
+        for name in list(self.active_workers.keys()):
+            self.stop_process(name)
+
 
 def main(is_demo=True):
-    
-    # Initialization
-    mp.freeze_support()  # To prevent error when building windows app
+    mp.freeze_support()
 
-    # Multiprocessing Queue Initializations
+    # 2. Keep queue initialization in main
     cmd_mp_queues = {
         "EEG": mp.Queue(),
         "EMOTIBIT": mp.Queue()
     }
     status_mp_queue = mp.Queue()
 
-    # Multiprocessing Workers Initializations
-    workers = {
-        "EEG": mp.Process(
-            target=eeg_process, 
-            args=(cmd_mp_queues["EEG"], status_mp_queue, is_demo),
-            daemon=True
-        ),
-        "EMOTIBIT": mp.Process(
-            target=emotibit_process, 
-            args=(cmd_mp_queues["EMOTIBIT"], status_mp_queue, is_demo),
-            daemon=True
-        )
-    }
+    # 3. Initialize the Process Manager instead of raw workers
+    process_manager = ProcessManager(cmd_mp_queues, status_mp_queue, is_demo)
 
-    # Start Worker Processes
-    for p_name, process in workers.items():
-        process.start()
-
-    # Initialize the GUI
+    # 4. Pass the process manager to your presenter
     model_manager = ModelManager()
     main_view = MainView()
-    ui_presenter = UiPresenter(model_manager, main_view,
-                               cmd_mp_queues, status_mp_queue,
-                               model_manager.ctrl_queues, model_manager.display_queues)
+    ui_presenter = UiPresenter(
+        model_manager, 
+        main_view,
+        cmd_mp_queues, 
+        status_mp_queue,
+        model_manager.ctrl_queues, 
+        model_manager.display_queues,
+        process_manager=process_manager  # <-- Pass it here
+    )
     ui_presenter.setup()
 
-    ### Main Loop and Shutdown ###
     try:
         ui_presenter.run()
 
@@ -56,26 +98,10 @@ def main(is_demo=True):
         print(f"Unexpected error: {e}")
     
     finally:
-        # Shutdown Process
         print("Initiating Graceful Shutdown...")
         
-        # Send EXIT Command to All Processes
-        for q_name, mp_queue in cmd_mp_queues.items():
-            print(f"Sending EXIT command to [{q_name}] process")
-            try:
-                mp_queue.put({"target": q_name, "action": "EXIT", "payload": None})
-            except Exception:
-                pass # Happens when command queue is already closed
-        
-        # Terminate Forcefully All Processes
-        for p_name, process in workers.items():
-            process.join(timeout=1.0)
-            if process.is_alive():
-                print(f"Process [{p_name}] hung. Terminating forcefully.")
-                process.terminate()
-                process.join()
-            else:
-                print(f"Process [{p_name}] closed cleanly.")
+        # 5. Delegate shutdown to the manager
+        process_manager.stop_all()
 
         # Close All Multiprocessing Queues
         for q in cmd_mp_queues.values():
@@ -84,10 +110,7 @@ def main(is_demo=True):
         status_mp_queue.close()
         status_mp_queue.join_thread()
 
-        # Close All Threads
         model_manager.close()
-
-        # System Exit
         print("Shutdown complete. Exiting.")
         sys.exit(0)
 

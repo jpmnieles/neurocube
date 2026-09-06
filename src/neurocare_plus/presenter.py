@@ -14,7 +14,9 @@ from widgets import EEGPlot, PPGPlot, TempPlot, GSRPlot
 class UiPresenter:
     def __init__(self, model: ModelManager, view: MainView,
                  cmd_mp_queues: dict, status_mp_queue, 
-                 ctrl_queues:dict, display_queues: dict):
+                 ctrl_queues:dict, display_queues: dict,
+                 process_manager=None):
+        
         # MVP Components
         self.model = model
         self.view = view
@@ -24,6 +26,9 @@ class UiPresenter:
         self.status_mp_queue = status_mp_queue
         self.ctrl_queues = ctrl_queues
         self.display_queues = display_queues
+
+        # Process Manager
+        self.process_manager = process_manager
 
         # Status Flags
         self.is_eeg_connected = False
@@ -102,14 +107,17 @@ class UiPresenter:
 
                 if is_auto:
                     data_filtered = data[time_mask]
-                    max_data_filtered = data_filtered.max()
-                    min_data_filtered = data_filtered.min()
-                    dpg.set_value("Temp_widget_data_text", f"{data_filtered.mean():2.2f}°C")
-                    dpg.set_axis_limits(f"temp_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
-                    dpg.set_axis_limits(f"temp_ch{channel_num}_y_axis", 
-                        min_data_filtered, max_data_filtered)
-                    dpg.configure_item(f"temp_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
-                    dpg.configure_item(f"temp_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
+
+                    # ADD THIS SAFETY CHECK
+                    if data_filtered.size > 0:
+                        max_data_filtered = data_filtered.max()
+                        min_data_filtered = data_filtered.min()
+                        dpg.set_value("Temp_widget_data_text", f"{data_filtered.mean():2.2f}°C")
+                        dpg.set_axis_limits(f"temp_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+                        dpg.set_axis_limits(f"temp_ch{channel_num}_y_axis", 
+                            min_data_filtered, max_data_filtered)
+                        dpg.configure_item(f"temp_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
+                        dpg.configure_item(f"temp_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
 
     def process_eeg_time_series_widget(self, window_start_time):
         while True:
@@ -144,12 +152,15 @@ class UiPresenter:
 
                         if is_auto:
                             data_filtered = data[channel_num - 1][time_mask]
-                            max_data_filtered = data_filtered.max()
-                            min_data_filtered = data_filtered.min()
-                            dpg.set_axis_limits(f"eeg_ch{channel_num}_y_axis", 
-                                min_data_filtered, max_data_filtered)
-                            dpg.configure_item(f"eeg_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
-                            dpg.configure_item(f"eeg_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
+
+                            # ADD THIS SAFETY CHECK
+                            if data_filtered.size > 0:
+                                max_data_filtered = data_filtered.max()
+                                min_data_filtered = data_filtered.min()
+                                dpg.set_axis_limits(f"eeg_ch{channel_num}_y_axis", 
+                                    min_data_filtered, max_data_filtered)
+                                dpg.configure_item(f"eeg_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
+                                dpg.configure_item(f"eeg_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
                             
     def process_ppg_time_series_widget(self, window_start_time):
         while True:
@@ -185,12 +196,15 @@ class UiPresenter:
 
                     if is_auto:
                         data_filtered = data[channel_num - 1][time_mask]
-                        max_data_filtered = data_filtered.max()
-                        min_data_filtered = data_filtered.min()
-                        dpg.set_axis_limits(f"ppg_ch{channel_num}_y_axis", 
-                            min_data_filtered, max_data_filtered)
-                        dpg.configure_item(f"ppg_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
-                        dpg.configure_item(f"ppg_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
+
+                        # ADD THIS SAFETY CHECK
+                        if data_filtered.size > 0:
+                            max_data_filtered = data_filtered.max()
+                            min_data_filtered = data_filtered.min()
+                            dpg.set_axis_limits(f"ppg_ch{channel_num}_y_axis", 
+                                min_data_filtered, max_data_filtered)
+                            dpg.configure_item(f"ppg_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
+                            dpg.configure_item(f"ppg_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")
 
     def process_gsr_time_series_widget(self, window_start_time):
         while True:
@@ -227,14 +241,17 @@ class UiPresenter:
 
                 if is_auto:
                     data_filtered = data[time_mask]
-                    max_data_filtered = data_filtered.max()
-                    min_data_filtered = data_filtered.min()
-                    dpg.set_value("GSR_widget_data_text", f"{data_filtered.mean():2.2f}uS")
-                    dpg.set_axis_limits(f"gsr_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
-                    dpg.set_axis_limits(f"gsr_ch{channel_num}_y_axis", 
-                        min_data_filtered, max_data_filtered)
-                    dpg.configure_item(f"gsr_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
-                    dpg.configure_item(f"gsr_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")                    
+
+                    # ADD THIS SAFETY CHECK
+                    if data_filtered.size > 0:
+                        max_data_filtered = data_filtered.max()
+                        min_data_filtered = data_filtered.min()
+                        dpg.set_value("GSR_widget_data_text", f"{data_filtered.mean():2.2f}uS")
+                        dpg.set_axis_limits(f"gsr_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
+                        dpg.set_axis_limits(f"gsr_ch{channel_num}_y_axis", 
+                            min_data_filtered, max_data_filtered)
+                        dpg.configure_item(f"gsr_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
+                        dpg.configure_item(f"gsr_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")                    
 
     def process_status_mp_queue(self):
         # Process all pending status messages before rendering the frame
@@ -305,20 +322,40 @@ class UiPresenter:
     def btn_eeg_open_device_cb(self):
         if 'EEG' in self.cmd_mp_queues:
             if not self.is_eeg_connected:
+                # 1. Spin up the OS Process
+                if self.process_manager:
+                    self.process_manager.start_process("EEG")
+                
+                # 2. Send commands to the newly created process
                 self.cmd_mp_queues['EEG'].put(CmdMsg(target="EEG", action="OPEN_DEVICE").model_dump())
                 self.cmd_mp_queues['EEG'].put(CmdMsg(target="EEG", action="START_STREAM").model_dump())
             else:
+                # 1. Send graceful hardware shutdown commands
                 self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='STOP_STREAM').model_dump())
                 self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='CLOSE_DEVICE').model_dump())
+                
+                # 2. Kill the OS Process
+                if self.process_manager:
+                    self.process_manager.stop_process("EEG")
     
     def btn_emotibit_open_device_cb(self):
         if 'EMOTIBIT' in self.cmd_mp_queues:
             if not self.is_emotibit_connected:
+                # 1. Spin up the OS Process
+                if self.process_manager:
+                    self.process_manager.start_process("EMOTIBIT")
+                
+                # 2. Send commands to the newly created process
                 self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target="EMOTIBIT", action="OPEN_DEVICE").model_dump())
                 self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target="EMOTIBIT", action="START_STREAM").model_dump())
             else:
+                # 1. Send graceful hardware shutdown commands
                 self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target='EMOTIBIT', action='STOP_STREAM').model_dump())
                 self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target='EMOTIBIT', action='CLOSE_DEVICE').model_dump())
+                
+                # 2. Kill the OS Process
+                if self.process_manager:
+                    self.process_manager.stop_process("EMOTIBIT")
 
     def update_window_layouts(self):
         # ----- Monitor Tab Secondary Display (For Alpha and Beta Displays) -----#
