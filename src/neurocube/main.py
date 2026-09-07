@@ -124,6 +124,7 @@ def main(is_demo=True):
         
         # 5. Delegate shutdown to the manager
         process_manager.stop_all()
+        model_manager.close()
 
         # Close All Multiprocessing Queues
         for q in cmd_mp_queues.values():
@@ -132,7 +133,6 @@ def main(is_demo=True):
         status_mp_queue.close()
         status_mp_queue.join_thread()
 
-        model_manager.close()
         print("Shutdown complete. Exiting.")
         sys.exit(0)
 
