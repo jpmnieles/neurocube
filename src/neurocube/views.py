@@ -533,7 +533,7 @@ class MedicalFormsTab:
                             borders_innerV=True, borders_outerV=True, width=1000):
                     
                             # Add the columns with label
-                            dpg.add_table_column(label="Assessmen Tool")
+                            dpg.add_table_column(label="Assessment Tool")
                             dpg.add_table_column(label="Raw Score")
                             dpg.add_table_column(label="Percentile / Interpretation")
 
