@@ -28,6 +28,12 @@ class MainView:
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, [210, 70, 70, 255])  # Hover Red
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, [140, 30, 30, 255])   # Click Red
 
+        with dpg.theme(tag="yellow_btn_theme"):
+            with dpg.theme_component(dpg.mvButton):
+                dpg.add_theme_color(dpg.mvThemeCol_Button, [170, 125, 0, 255])         # Idle Yellow
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, [195, 150, 10, 255])  # Hover Yellow
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, [140, 100, 0, 255])   # Click Yellow
+
         with dpg.theme(tag="transparent_plot_theme"):
             with dpg.theme_component(dpg.mvPlot):
                 dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 1, 1, category=dpg.mvThemeCat_Core)
@@ -165,6 +171,7 @@ class DevicePanel:
             view_elements.DeviceBlock("Emotibit", "btn_emotibit_device_connect"),
             view_elements.DeviceBlock("PBM Module", "btn_pbm_device_connect")
         ]
+        self.recorder = view_elements.LabRecorderWidget()
 
     def build(self):
         with dpg.child_window(label="Device Rack Layout", width=150, height=0):  # Device Panel
@@ -175,10 +182,12 @@ class DevicePanel:
             # Individual HW Devices Connect/Disconnect
             for device in self.devices:
                 device.build()
-
+            
             # Placeholder for the space
-            with dpg.child_window(height=-50, border=False):
+            with dpg.child_window(height=-370, border=False):
                 pass
+
+            self.recorder.build()
 
             # Start and Stop Stream
             with dpg.group(horizontal=True, height=45):

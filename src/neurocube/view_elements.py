@@ -32,6 +32,44 @@ class DeviceBlock:
             dpg.add_spacer(height=5)
 
 
+class LabRecorderWidget:
+    """Controls LabRecorder metadata and recording state."""
+    def __init__(self):
+        self.button_tag = "recorder_toggle_btn"
+        self.status_tag = "recorder_status"
+        self.indicator_tag = "recorder_indicator"
+
+    def build(self):
+        dpg.add_text("RECORDING", color=[150, 150, 255])
+        dpg.add_separator()
+
+        dpg.add_text("Subject")
+        dpg.add_input_text(tag="recorder_subject", default_value="S001", width=-1)
+        dpg.add_text("Session")
+        dpg.add_input_text(tag="recorder_session", default_value="DAY1", width=-1)
+        dpg.add_text("Task")
+        dpg.add_input_text(tag="recorder_task", default_value="ERP", width=-1)
+        dpg.add_text("Run")
+        dpg.add_input_text(tag="recorder_run", default_value="001", width=-1)
+
+        dpg.add_spacer(height=10)
+        dpg.add_button(label="Start Recording", tag=self.button_tag, height=35, width=-1)
+        dpg.bind_item_theme(self.button_tag, "yellow_btn_theme")
+
+        with dpg.group(horizontal=True):
+            with dpg.drawlist(width=16, height=20):
+                dpg.draw_circle(
+                    center=[8, 10], radius=5,
+                    color=[128, 128, 128, 255], fill=[128, 128, 128, 255],
+                    tag=self.indicator_tag
+                )
+            dpg.add_text("Ready", tag=self.status_tag, color=[160, 160, 160])
+
+        dpg.add_spacer(height=5)
+        dpg.add_separator()
+        dpg.add_spacer(height=5)
+
+
 class ComboDisplayWidget:
     def __init__(self, combo_item_list=[], widget_list=[], display_tag=''):
         self.combo_item_list = combo_item_list
