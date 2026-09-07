@@ -274,17 +274,33 @@ class UiPresenter:
                     # Classifying Messages
                     if status_msg['state'] == "START_STREAM":
                         self.is_eeg_connected = True
+                        dpg.configure_item("btn_eeg_device_connect", label="Stop Device", enabled=True)
                     elif status_msg['state'] == "CLOSE_DEVICE":
                         self.is_eeg_connected = False
+                        dpg.configure_item("btn_eeg_device_connect", label="Start Device", enabled=True)
+                    elif status_msg['state'] in ("ERROR", "EXIT"):
+                        self.is_eeg_connected = False
+                        dpg.set_value("btn_eeg_device_connect_status", "Disconnected")
+                        dpg.configure_item(
+                            "btn_eeg_device_connect_indicator",
+                            color=[128, 128, 128, 255],
+                            fill=[128, 128, 128, 255],
+                        )
+                        dpg.configure_item(
+                            "btn_eeg_device_connect",
+                            label="Start Device",
+                            enabled=True,
+                        )
 
                     if self.is_eeg_connected:
                         dpg.set_value("btn_eeg_device_connect"+"_status", "Connected")
                         dpg.configure_item("btn_eeg_device_connect"+"_indicator",color=[0, 255, 0, 255], fill=[0, 255, 0, 255])
-                        dpg.configure_item("btn_eeg_device_connect", label="Stop Device")
+                        dpg.configure_item("btn_eeg_device_connect", label="Stop Device", enabled=True)
                     else:
                         dpg.set_value("btn_eeg_device_connect"+"_status", "Disconnected")
                         dpg.configure_item("btn_eeg_device_connect"+"_indicator", color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
-                        dpg.configure_item("btn_eeg_device_connect", label="Start Device")
+                        if status_msg['state'] == "CLOSE_DEVICE":
+                            dpg.configure_item("btn_eeg_device_connect", label="Start Device", enabled=True)
                 
                 ### Status Messages ###
                 if status_msg['source'] == "EMOTIBIT":
@@ -292,17 +308,33 @@ class UiPresenter:
                     # Classifying Messages
                     if status_msg['state'] == "START_STREAM":
                         self.is_emotibit_connected = True
+                        dpg.configure_item("btn_emotibit_device_connect", label="Stop Device", enabled=True)
                     elif status_msg['state'] == "CLOSE_DEVICE":
                         self.is_emotibit_connected = False
+                        dpg.configure_item("btn_emotibit_device_connect", label="Start Device", enabled=True)
+                    elif status_msg['state'] in ("ERROR", "EXIT"):
+                        self.is_emotibit_connected = False
+                        dpg.set_value("btn_emotibit_device_connect_status", "Disconnected")
+                        dpg.configure_item(
+                            "btn_emotibit_device_connect_indicator",
+                            color=[128, 128, 128, 255],
+                            fill=[128, 128, 128, 255],
+                        )
+                        dpg.configure_item(
+                            "btn_emotibit_device_connect",
+                            label="Start Device",
+                            enabled=True,
+                        )
 
                     if self.is_emotibit_connected:
                         dpg.set_value("btn_emotibit_device_connect"+"_status", "Connected")
                         dpg.configure_item("btn_emotibit_device_connect"+"_indicator",color=[0, 255, 0, 255], fill=[0, 255, 0, 255])
-                        dpg.configure_item("btn_emotibit_device_connect", label="Stop Device")
+                        dpg.configure_item("btn_emotibit_device_connect", label="Stop Device", enabled=True)
                     else:
                         dpg.set_value("btn_emotibit_device_connect"+"_status", "Disconnected")
                         dpg.configure_item("btn_emotibit_device_connect"+"_indicator", color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
-                        dpg.configure_item("btn_emotibit_device_connect", label="Start Device")
+                        if status_msg['state'] == "CLOSE_DEVICE":
+                            dpg.configure_item("btn_emotibit_device_connect", label="Start Device", enabled=True)
 
                 ### Status Messages ###
                 if status_msg['source'] == "PSYCHOPY":
@@ -348,6 +380,7 @@ class UiPresenter:
     def btn_eeg_open_device_cb(self):
         if 'EEG' in self.cmd_mp_queues:
             if not self.is_eeg_connected:
+                dpg.configure_item("btn_eeg_device_connect", label="Starting...", enabled=False)
                 # 1. Spin up the OS Process
                 if self.process_manager:
                     self.process_manager.start_process("EEG")
@@ -356,6 +389,7 @@ class UiPresenter:
                 self.cmd_mp_queues['EEG'].put(CmdMsg(target="EEG", action="OPEN_DEVICE").model_dump())
                 self.cmd_mp_queues['EEG'].put(CmdMsg(target="EEG", action="START_STREAM").model_dump())
             else:
+                dpg.configure_item("btn_eeg_device_connect", label="Stopping...", enabled=False)
                 # 1. Send graceful hardware shutdown commands
                 self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='STOP_STREAM').model_dump())
                 self.cmd_mp_queues['EEG'].put(CmdMsg(target='EEG', action='CLOSE_DEVICE').model_dump())
@@ -367,6 +401,7 @@ class UiPresenter:
     def btn_emotibit_open_device_cb(self):
         if 'EMOTIBIT' in self.cmd_mp_queues:
             if not self.is_emotibit_connected:
+                dpg.configure_item("btn_emotibit_device_connect", label="Starting...", enabled=False)
                 # 1. Spin up the OS Process
                 if self.process_manager:
                     self.process_manager.start_process("EMOTIBIT")
@@ -375,6 +410,7 @@ class UiPresenter:
                 self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target="EMOTIBIT", action="OPEN_DEVICE").model_dump())
                 self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target="EMOTIBIT", action="START_STREAM").model_dump())
             else:
+                dpg.configure_item("btn_emotibit_device_connect", label="Stopping...", enabled=False)
                 # 1. Send graceful hardware shutdown commands
                 self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target='EMOTIBIT', action='STOP_STREAM').model_dump())
                 self.cmd_mp_queues['EMOTIBIT'].put(CmdMsg(target='EMOTIBIT', action='CLOSE_DEVICE').model_dump())
