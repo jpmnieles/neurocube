@@ -274,9 +274,15 @@ class UiPresenter:
                     # Classifying Messages
                     if status_msg['state'] == "START_STREAM":
                         self.is_eeg_connected = True
+                        self.ctrl_queues['EEG_INLET_FILTER'].put(
+                            CtrlMsg(target="EEG", action="START_STREAM").model_dump()
+                        )
                         dpg.configure_item("btn_eeg_device_connect", label="Stop Device", enabled=True)
                     elif status_msg['state'] == "CLOSE_DEVICE":
                         self.is_eeg_connected = False
+                        self.ctrl_queues['EEG_INLET_FILTER'].put(
+                            CtrlMsg(target="EEG", action="STOP_STREAM").model_dump()
+                        )
                         dpg.configure_item("btn_eeg_device_connect", label="Start Device", enabled=True)
                     elif status_msg['state'] in ("ERROR", "EXIT"):
                         self.is_eeg_connected = False
@@ -308,9 +314,21 @@ class UiPresenter:
                     # Classifying Messages
                     if status_msg['state'] == "START_STREAM":
                         self.is_emotibit_connected = True
+                        self.ctrl_queues['PPG_INLET'].put(
+                            CtrlMsg(target="PPG", action="START_STREAM").model_dump()
+                        )
+                        self.ctrl_queues['ANC_INLET'].put(
+                            CtrlMsg(target="Multi", action="START_STREAM").model_dump()
+                        )
                         dpg.configure_item("btn_emotibit_device_connect", label="Stop Device", enabled=True)
                     elif status_msg['state'] == "CLOSE_DEVICE":
                         self.is_emotibit_connected = False
+                        self.ctrl_queues['PPG_INLET'].put(
+                            CtrlMsg(target="PPG", action="STOP_STREAM").model_dump()
+                        )
+                        self.ctrl_queues['ANC_INLET'].put(
+                            CtrlMsg(target="Multi", action="STOP_STREAM").model_dump()
+                        )
                         dpg.configure_item("btn_emotibit_device_connect", label="Start Device", enabled=True)
                     elif status_msg['state'] in ("ERROR", "EXIT"):
                         self.is_emotibit_connected = False
