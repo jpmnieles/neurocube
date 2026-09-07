@@ -97,6 +97,20 @@ class ModelManager:
             thread.join(timeout=1.0)
         print("Backend Model gracefully shut down.")
 
+    @staticmethod
+    def _put_latest(target_queue, item):
+        try:
+            target_queue.put_nowait(item)
+        except queue.Full:
+            try:
+                target_queue.get_nowait()
+            except queue.Empty:
+                pass
+            try:
+                target_queue.put_nowait(item)
+            except queue.Full:
+                pass
+
     ### Worker Thread Implementations ###
     
     def eeg_inlet_filter_worker(self):
@@ -105,7 +119,9 @@ class ModelManager:
         print(f'[{worker_id}] Thread Starting')
         is_streaming = False
         is_initialized = False
+        last_error = None
         LSL_STREAM_NAME = "EEG_Board"
+        inlet_stream = None
 
         try:
             # MNE-LSL Initialization
@@ -132,14 +148,18 @@ class ModelManager:
                         pass
                     except Exception as e:  # TODO: Placeholder for any exception on the functions triggered by the command
                         self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
-                                                        message=str(e)).model_dump())
+                                                        message=f"{type(e).__name__}: {e!r}").model_dump())
 
                     # Connect Once to LSL Stream
                     if not is_initialized:
-                        inlet_stream.connect(acquisition_delay=None, processing_flags='all')
-                        inlet_stream.filter(5.0, 50.0, picks="eeg")  # 4th Order Butterworth Filter  # TODO: Command Filter 
-                        inlet_stream.notch_filter(60, picks="eeg")
-                        is_initialized = True
+                        try:
+                            inlet_stream.connect(acquisition_delay=None, processing_flags='all')
+                            inlet_stream.filter(5.0, 50.0, picks="eeg")  # 4th Order Butterworth Filter  # TODO: Command Filter
+                            inlet_stream.notch_filter(60, picks="eeg")
+                            is_initialized = True
+                        except Exception:
+                            time.sleep(POLLING_TIME)
+                            continue
 
                     # Data Ingestion from LSL Stream
                     new_data = False
@@ -151,37 +171,30 @@ class ModelManager:
                     # Passing Data from LSL Stream to Multithread Queues
                     if is_streaming:
                         if new_data:
-                            try:
-                                self.display_queues["EEG_TIME"].put_nowait((data, timestamps))
-                            except queue.Full:
-                                print("[EEG_TIME] Queue Full")
-                                dropped_data, dropped_timestamp = self.display_queues["EEG_TIME"].get_nowait()
-                                self.display_queues["EEG_TIME"].put_nowait((data, timestamps))
-                            
-                            try:
-                                self.data_queues["FFT_IN"].put_nowait((data, timestamps))
-                            except queue.Full:
-                                dropped_data, dropped_timestamp = self.data_queues["FFT_IN"].get_nowait()
-                                self.data_queues["FFT_IN"].put_nowait((data, timestamps))
-
-                            print(f'[LSL INLET STREAM] Data In, Time: {datetime.now()}')
-                            print(f'[LSL INLET STREAM] timestamps: {timestamps[-5:]}')
-
+                            self._put_latest(
+                                self.display_queues["EEG_TIME"], (data, timestamps)
+                            )
                     
+                    last_error = None
                     # Throttling to keep CPU usage low
                     time.sleep(POLLING_TIME)           
 
                 except Exception as e:
-                    self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
-                                                    message=str(e)).model_dump())
+                    message = str(e)
+                    if message != last_error:
+                        self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
+                                                        message=message).model_dump())
+                        last_error = message
+                    time.sleep(POLLING_TIME)
                 
 
         except Exception as e:
             self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
-                                            message=str(e)).model_dump())
+                                            message=f"{type(e).__name__}: {e!r}").model_dump())
         
         finally:
-            inlet_stream.disconnect()
+            if inlet_stream is not None:
+                inlet_stream.disconnect()
 
     def anc_inlet_worker(self):
         # Thread Initialization
@@ -189,7 +202,9 @@ class ModelManager:
         print(f'[{worker_id}] Thread Starting')
         is_streaming = False
         is_initialized = False
+        last_error = None
         LSL_STREAM_NAME = "EMOTIBIT_ANC"
+        inlet_stream = None
 
         try:
             # MNE-LSL Initialization
@@ -216,14 +231,18 @@ class ModelManager:
                         pass
                     except Exception as e:  # TODO: Placeholder for any exception on the functions triggered by the command
                         self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
-                                                        message=str(e)).model_dump())
+                                                        message=f"{type(e).__name__}: {e!r}").model_dump())
 
                     # Connect Once to LSL Stream
                     if not is_initialized:
-                        inlet_stream.connect(acquisition_delay=None, processing_flags='all')
-                        # inlet_stream.filter(5.0, 50.0, picks="ppg")  # 4th Order Butterworth Filter  # TODO: Command Filter 
-                        # inlet_stream.notch_filter(60, picks="ppg")
-                        is_initialized = True
+                        try:
+                            inlet_stream.connect(acquisition_delay=None, processing_flags='all')
+                            # inlet_stream.filter(5.0, 50.0, picks="ppg")  # 4th Order Butterworth Filter
+                            # inlet_stream.notch_filter(60, picks="ppg")
+                            is_initialized = True
+                        except Exception:
+                            time.sleep(POLLING_TIME)
+                            continue
 
                     # Data Ingestion from LSL Stream
                     new_data = False
@@ -242,38 +261,34 @@ class ModelManager:
                                 print("[GSR_IN] Queue Full")
                                 dropped_data, dropped_timestamp = self.data_queues["GSR_IN"].get_nowait()
                                 self.data_queues["GSR_IN"].put_nowait((data[0,:], timestamps))
-                            try:
-                                self.display_queues["GSR_TIME"].put_nowait((data[0,:], timestamps))
-                            except queue.Full:
-                                print("[GSR_TIME] Queue Full")
-                                dropped_data, dropped_timestamp = self.display_queues["GSR_OUT"].get_nowait()
-                                self.display_queues["GSR_TIME"].put_nowait((data[0,:], timestamps))
+                            self._put_latest(
+                                self.display_queues["GSR_TIME"], (data[0,:], timestamps)
+                            )
                             #----- Temperature -----#
-                            try:
-                                self.display_queues["TEMP_TIME"].put_nowait((data[1,:], timestamps))
-                            except queue.Full:
-                                print("[TEMP_TIME] Queue Full")
-                                dropped_data, dropped_timestamp = self.display_queues["TEMP_TIME"].get_nowait()
-                                self.display_queues["TEMP_TIME"].put_nowait((data[1,:], timestamps))
-
-                            print(f'[ANC - LSL INLET STREAM] Data In, Time: {datetime.now()}')
-                            print(f'[ANC - LSL INLET STREAM] timestamps: {timestamps[-5:]}')
-
+                            self._put_latest(
+                                self.display_queues["TEMP_TIME"], (data[1,:], timestamps)
+                            )
                     
+                    last_error = None
                     # Throttling to keep CPU usage low
                     time.sleep(POLLING_TIME)           
 
                 except Exception as e:
-                    self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
-                                                    message=str(e)).model_dump())
+                    message = str(e)
+                    if message != last_error:
+                        self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
+                                                        message=message).model_dump())
+                        last_error = message
+                    time.sleep(POLLING_TIME)
                 
 
         except Exception as e:
             self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
-                                            message=str(e)).model_dump())
+                                            message=f"{type(e).__name__}: {e!r}").model_dump())
         
         finally:
-            inlet_stream.disconnect()
+            if inlet_stream is not None:
+                inlet_stream.disconnect()
     
     def ppg_inlet_worker(self):
         # Thread Initialization
@@ -281,7 +296,9 @@ class ModelManager:
         print(f'[{worker_id}] Thread Starting')
         is_streaming = False
         is_initialized = False
+        last_error = None
         LSL_STREAM_NAME = "EMOTIBIT_PPG"
+        inlet_stream = None
 
         try:
             # MNE-LSL Initialization
@@ -308,13 +325,17 @@ class ModelManager:
                         pass
                     except Exception as e:  # TODO: Placeholder for any exception on the functions triggered by the command
                         self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
-                                                        message=str(e)).model_dump())
+                                                        message=f"{type(e).__name__}: {e!r}").model_dump())
 
                     # Connect Once to LSL Stream
                     if not is_initialized:
-                        inlet_stream.connect(acquisition_delay=None, processing_flags='all') 
-                        inlet_stream.filter(0.5, 8.0) # TODO: Command Filter 
-                        is_initialized = True
+                        try:
+                            inlet_stream.connect(acquisition_delay=None, processing_flags='all')
+                            inlet_stream.filter(0.5, 8.0) # TODO: Command Filter
+                            is_initialized = True
+                        except Exception:
+                            time.sleep(POLLING_TIME)
+                            continue
 
                     # Data Ingestion from LSL Stream
                     new_data = False
@@ -326,31 +347,34 @@ class ModelManager:
                     # Passing Data from LSL Stream to Multithread Queues
                     if is_streaming:
                         if new_data:
-                            try:
-                                self.display_queues["PPG_TIME"].put_nowait((data, timestamps))
-                            except queue.Full:
-                                print("[PPG_TIME] Queue Full")
-                                dropped_data, dropped_timestamp = self.display_queues["PPG_TIME"].get_nowait()
-                                self.display_queues["PPG_TIME"].put_nowait((data, timestamps))
+                            self._put_latest(
+                                self.display_queues["PPG_TIME"], (data, timestamps)
+                            )
 
                             # print(f'[PPG - LSL INLET STREAM] Data In, Time: {datetime.now()}')
                             # print(f'[PPG - LSL INLET STREAM] timestamps: {timestamps[-5:]}')
 
                     
+                    last_error = None
                     # Throttling to keep CPU usage low
                     time.sleep(POLLING_TIME)           
 
                 except Exception as e:
-                    self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
-                                                    message=str(e)).model_dump())
+                    message = str(e)
+                    if message != last_error:
+                        self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
+                                                        message=message).model_dump())
+                        last_error = message
+                    time.sleep(POLLING_TIME)
                 
 
         except Exception as e:
             self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
-                                            message=str(e)).model_dump())
+                                            message=f"{type(e).__name__}: {e!r}").model_dump())
         
         finally:
-            inlet_stream.disconnect()
+            if inlet_stream is not None:
+                inlet_stream.disconnect()
 
     def recorder_worker(self):
         worker_id = "RECORDER"
@@ -382,7 +406,7 @@ class ModelManager:
                     
             except Exception as e:
                 self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
-                                                message=str(e)).model_dump())
+                                                message=f"{type(e).__name__}: {e!r}").model_dump())
             
             finally:
                 self.ctrl_queues["RECORDER"].task_done()

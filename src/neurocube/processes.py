@@ -83,8 +83,12 @@ def eeg_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
 
         # MNE-LSL Initialization
         LSL_STREAM_NAME = "EEG_Board"
-        outlet_stream = StreamOutlet(StreamInfo(LSL_STREAM_NAME, 'EEG', 
-                                                NUM_EEG_CH, SAMPLING_RATE,'float32', source_id='123'))
+        info_eeg = StreamInfo(
+            LSL_STREAM_NAME, 'EEG', NUM_EEG_CH, SAMPLING_RATE,
+            'float32', source_id='123'
+        )
+        info_eeg.set_channel_names([f"EEG_{channel_num + 1}" for channel_num in range(NUM_EEG_CH)])
+        outlet_stream = StreamOutlet(info_eeg)
         
         while True:
             try:
@@ -239,12 +243,14 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
         # ----- PPG -----#
         LSL_STREAM_NAME_1 = "EMOTIBIT_PPG"
         info_ppg = StreamInfo(LSL_STREAM_NAME_1, "PPG", NUM_PPG_CH, AUX_SAMPLING_RATE, "float32", "emotibit_ppg")
-        info_ppg.set_channel_names(["PPG_Red", "PPG_IR", "PPG_Green"])
+        ppg_names = ["PPG_Red", "PPG_IR", "PPG_Green"][:NUM_PPG_CH]
+        info_ppg.set_channel_names(ppg_names)
         outlet_stream_1 = StreamOutlet(info_ppg)
         # ----- EDA/TEMP -----#
         LSL_STREAM_NAME_2 = "EMOTIBIT_ANC"
         info_anc = StreamInfo(LSL_STREAM_NAME_2, "Multi", NUM_ANC_CH, ANC_SAMPLING_RATE, "float32", "emotibit_anc")
-        info_anc.set_channel_names(["EDA", "TEMP"])
+        anc_names = ["EDA", "TEMP"] + [f"ANC_{channel_num}" for channel_num in range(3, NUM_ANC_CH + 1)]
+        info_anc.set_channel_names(anc_names)
         outlet_stream_2 = StreamOutlet(info_anc)
         
         while True:
