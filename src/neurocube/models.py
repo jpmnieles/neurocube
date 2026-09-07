@@ -3,10 +3,16 @@ import queue
 import threading
 from datetime import datetime
 
+from pathlib import Path
+from liesl.files.labrecorder.cli_wrapper import LabRecorderCLI
+
 from typing import Any, Optional, Dict
 from pydantic import BaseModel
 
 from mne_lsl.stream import StreamLSL
+
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="subprocess")
 
 
 class CtrlMsg(BaseModel):
@@ -26,6 +32,16 @@ class ModelManager:
     def __init__(self):
         self.running = False
         self.is_streaming = False  # Controlled by the control_queue
+
+        # Directory
+        self.base_dir = Path(__file__).resolve().parents[2]
+
+        # Model Controllers
+        self.recorder = LabRecorderController(
+            data_root=self.base_dir/"data",
+            executable_path=self.base_dir/"bin"/"LabRecorder-1.17.0-noble_amd64"/"bin"/"LabRecorderCLI",
+            stream_args=[{"name": "EEG_Board"}, {"name": "EMOTIBIT_PPG"}, {"name": "EMOTIBIT_ANC"}]
+        )
         
         # Control Queues
         self.ctrl_queues = {
@@ -160,7 +176,6 @@ class ModelManager:
         
         finally:
             inlet_stream.disconnect()
-
 
     def anc_inlet_worker(self):
         # Thread Initialization
@@ -330,3 +345,59 @@ class ModelManager:
         
         finally:
             inlet_stream.disconnect()
+
+
+class LabRecorderController:
+    def __init__(self, data_root: Path, executable_path: Path, stream_args: list):
+        self.data_root = Path(data_root)
+        self.lr = LabRecorderCLI(path_to_cmd=str(executable_path))
+        self.stream_args = stream_args
+
+    def set_stream_args(self, stream_args: list):
+        self.stream_args = stream_args
+
+    def start_recording(self, subject: str, session: str, task: str, run: int):
+        """Starts recording and saves inside a subject-specific folder."""
+        # 1. Create a dedicated folder for the subject (e.g., data/sub-01/)
+        subject_dir = self.data_root / f"sub-{subject}"
+        subject_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 2. Generate the datetime string (Format: YYYYMMDD_HHMMSS)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # 3. Construct the detailed filename
+        filename = f"sub-{subject}_ses-{session}_task-{task}_run-{run}_raw_{timestamp}.xdf"
+        target_path = subject_dir / filename
+        
+        # 4. Start recording to the specified path
+        self.lr.start_recording(filename=str(target_path), streamargs=self.stream_args)
+
+    def stop_recording(self):
+        """Stops the LabRecorder CLI."""
+        self.lr.stop_recording()
+
+
+if __name__ == '__main__':
+    # Directory
+    base_dir = Path(__file__).resolve().parents[2]
+    
+    recorder = LabRecorderController(
+        data_root= base_dir/"data",
+        executable_path=base_dir/"bin"/"LabRecorder-1.17.0-noble_amd64"/"bin"/"LabRecorderCLI",
+        stream_args=[{"name": "EEG_Board"}, {"name": "EMOTIBIT_PPG"}, {"name": "EMOTIBIT_ANC"}]
+    )
+    try:
+        recorder.start_recording(
+            subject="S001",
+            session="DAY1",
+            task="ERP",
+            run="001")
+    except Exception as e:
+        # If the wrapper throws an error or our manual check fails, raise a clean exception
+        print(f"LabRecorder Error: {str(e)}")
+    time.sleep(5)
+    try:
+        recorder.stop_recording()
+    except Exception as e:
+        # If the wrapper throws an error or our manual check fails, raise a clean exception
+        print(f"LabRecorder Error: {str(e)}")
