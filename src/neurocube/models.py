@@ -47,7 +47,8 @@ class ModelManager:
         self.ctrl_queues = {
             "EEG_INLET_FILTER": queue.Queue(),
             "PPG_INLET": queue.Queue(),
-            "ANC_INLET": queue.Queue()
+            "ANC_INLET": queue.Queue(),
+            "RECORDER": queue.Queue()
         }
 
         # Data Queues
@@ -76,6 +77,7 @@ class ModelManager:
             "EEG": threading.Thread(target=self.eeg_inlet_filter_worker, daemon=True),
             "PPG": threading.Thread(target=self.ppg_inlet_worker, daemon=True),
             "ANC": threading.Thread(target=self.anc_inlet_worker, daemon=True),
+            "RECORDER": threading.Thread(target=self.recorder_worker, daemon=True)
         }
 
     def start(self):
@@ -87,6 +89,10 @@ class ModelManager:
 
     def close(self):
         self.running = False
+
+        # Unblock the recorder thread if it's waiting on a queue command
+        self.ctrl_queues["RECORDER"].put(CtrlMsg(target="RECORDER", action="SHUTDOWN").model_dump())
+
         for t_name, thread in self.threads.items():  # TODO: Close the Threads Gracefully
             thread.join(timeout=1.0)
         print("Backend Model gracefully shut down.")
@@ -346,12 +352,50 @@ class ModelManager:
         finally:
             inlet_stream.disconnect()
 
+    def recorder_worker(self):
+        worker_id = "RECORDER"
+        print(f'[{worker_id}] Thread Starting')
+
+        while self.running:
+            try:
+                # Blocks until a command arrives; 0.005s timeout permits checking self.running
+                cmd = self.ctrl_queues["RECORDER"].get(timeout=0.005)
+                data = cmd.get("data")
+                action = cmd.get("action")
+            except queue.Empty:
+                continue
+
+            if action == "SHUTDOWN":
+                break
+                
+            try:
+                if action == "START":
+                    # LSL resolution happens in this thread, off the GUI thread
+                    self.recorder.start_recording(**data)
+                    self.status_queue.put(StatusMsg(source=worker_id, state="START_RECORD",
+                                                    message="Recording Streams").model_dump())
+
+                elif action == "STOP":
+                    self.recorder.stop_recording()
+                    self.status_queue.put(StatusMsg(source=worker_id, state="STOP_RECORD",
+                                                    message=f"Data Saved at {self.recorder.target_path}").model_dump())
+                    
+            except Exception as e:
+                self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
+                                                message=str(e)).model_dump())
+            
+            finally:
+                self.ctrl_queues["RECORDER"].task_done()
+                
+        print(f'[{worker_id}] Thread Exited')
+
 
 class LabRecorderController:
     def __init__(self, data_root: Path, executable_path: Path, stream_args: list):
         self.data_root = Path(data_root)
         self.lr = LabRecorderCLI(path_to_cmd=str(executable_path))
         self.stream_args = stream_args
+        self.target_path = None
 
     def set_stream_args(self, stream_args: list):
         self.stream_args = stream_args
@@ -367,10 +411,10 @@ class LabRecorderController:
         
         # 3. Construct the detailed filename
         filename = f"sub-{subject}_ses-{session}_task-{task}_run-{run}_raw_{timestamp}.xdf"
-        target_path = subject_dir / filename
+        self.target_path = subject_dir / filename
         
         # 4. Start recording to the specified path
-        self.lr.start_recording(filename=str(target_path), streamargs=self.stream_args)
+        self.lr.start_recording(filename=str(self.target_path), streamargs=self.stream_args)
 
     def stop_recording(self):
         """Stops the LabRecorder CLI."""
