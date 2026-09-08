@@ -604,8 +604,8 @@ class UiPresenter:
         if self.view.active_tab == "psychopy_tab" and dpg.does_item_exist("exp_sec_display"):
             parent_height = dpg.get_item_rect_size("exp_sec_display")[1]
 
-            # Subtract the spacer and separator heights between the displays.
-            available_height = parent_height - 10
+            # Reserve space for the spacers, separator, and child-window padding.
+            available_height = parent_height - 26
 
             if available_height > 20:
                 alpha_height = int(available_height * 0.25)

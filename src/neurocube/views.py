@@ -271,7 +271,7 @@ class PsychoPyTab:
             # Second Section
             # DPG Table for Modular Display Configuration
             with dpg.table(header_row=False, policy=dpg.mvTable_SizingStretchProp, 
-                            resizable=True, scrollX=True, scrollY=True, height=0, tag='exp_table'):
+                            resizable=True, scrollX=True, scrollY=False, height=0, tag='exp_table'):
                 
                 # Column Width: 60% Primary Display, 40% Secondary Display
                 dpg.add_table_column(init_width_or_weight=0.30)
@@ -291,7 +291,7 @@ class PsychoPyTab:
                                             tag="exp_sec_display"):
                         
                         ## Display 2A
-                        with dpg.child_window(border=False, height=420, tag="exp_alpha_display"):
+                        with dpg.child_window(border=False, height=0, tag="exp_alpha_display"):
                             self.alpha_select.build('PsychoPy Markers')
                         
                         ## Separator
