@@ -244,10 +244,9 @@ class PsychoPyTab:
     def build(self):
         with dpg.tab(label="PsychoPy", tag="psychopy_tab"):
             # First Section
-            with dpg.child_window(border=False, height=100):
-                dpg.add_text("ERP Experiment", color=[150, 150, 255])
+            with dpg.child_window(border=False, height=80):
+                dpg.add_text("Experiment", color=[150, 150, 255])
                 dpg.add_separator()
-                dpg.add_spacer(height=1)
 
                 dpg.add_text("Ready", tag="psychopy_status")
                 with dpg.group(horizontal=True):
@@ -263,8 +262,9 @@ class PsychoPyTab:
                         label="Run ERP Experiment",
                         tag="psychopy_run_btn",
                         width=220,
-                        height=32
+                        height=24
                     )
+
             dpg.add_separator()
             dpg.add_spacer(height=1)
 
