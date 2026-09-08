@@ -2,6 +2,9 @@ import time
 import queue
 import threading
 from datetime import datetime
+import mne
+import numpy as np
+import pyxdf
 
 from pathlib import Path
 from liesl.files.labrecorder.cli_wrapper import LabRecorderCLI
@@ -51,7 +54,8 @@ class ModelManager:
             "PPG_INLET": queue.Queue(),
             "ANC_INLET": queue.Queue(),
             "MARKER_INLET": queue.Queue(),
-            "RECORDER": queue.Queue()
+            "RECORDER": queue.Queue(),
+            "ERP": queue.Queue()
         }
 
         # Data Queues
@@ -82,7 +86,8 @@ class ModelManager:
             "PPG": threading.Thread(target=self.ppg_inlet_worker, daemon=True),
             "ANC": threading.Thread(target=self.anc_inlet_worker, daemon=True),
             "MARKER": threading.Thread(target=self.marker_inlet_worker, daemon=True),
-            "RECORDER": threading.Thread(target=self.recorder_worker, daemon=True)
+            "RECORDER": threading.Thread(target=self.recorder_worker, daemon=True),
+            "ERP": threading.Thread(target=self.erp_worker, daemon=True)
         }
 
     def start(self):
@@ -97,6 +102,7 @@ class ModelManager:
 
         # Unblock the recorder thread if it's waiting on a queue command
         self.ctrl_queues["RECORDER"].put(CtrlMsg(target="RECORDER", action="SHUTDOWN").model_dump())
+        self.ctrl_queues["ERP"].put(CtrlMsg(target="ERP", action="SHUTDOWN").model_dump())
 
         for t_name, thread in self.threads.items():  # TODO: Close the Threads Gracefully
             thread.join(timeout=1.0)
@@ -117,6 +123,109 @@ class ModelManager:
                 pass
 
     ### Worker Thread Implementations ###
+
+    def erp_worker(self):
+        while self.running:
+            try:
+                cmd = self.ctrl_queues["ERP"].get(timeout=0.005)
+            except queue.Empty:
+                continue
+
+            if cmd.get("action") == "SHUTDOWN":
+                break
+
+            try:
+                times_ms, erp_data = self.extract_pz_erp_for_dpg(cmd["data"]["file_path"])
+                self.status_queue.put(StatusMsg(
+                    source="ERP",
+                    state="RESULT",
+                    data={
+                        "times_ms": times_ms.tolist(),
+                        "erp_data": {name: values.tolist() for name, values in erp_data.items()},
+                    },
+                ).model_dump())
+            except Exception as error:
+                self.status_queue.put(StatusMsg(
+                    source="ERP", state="ERROR", message=f"{type(error).__name__}: {error}"
+                ).model_dump())
+            finally:
+                self.ctrl_queues["ERP"].task_done()
+
+    @staticmethod
+    def extract_pz_erp_for_dpg(file_path: str):
+        streams, _ = pyxdf.load_xdf(file_path)
+        eeg_stream = next(stream for stream in streams if stream["info"]["type"][0] == "EEG")
+        marker_stream = next(
+            (stream for stream in streams if stream["info"]["type"][0] in ["Markers", "Events"]),
+            None,
+        )
+
+        eeg_data = eeg_stream["time_series"].T * 1e-6
+        sfreq = float(eeg_stream["info"]["nominal_srate"][0])
+        eeg_start_time = eeg_stream["time_stamps"][0]
+        try:
+            ch_names = [
+                channel["label"][0]
+                for channel in eeg_stream["info"]["desc"][0]["channels"][0]["channel"]
+            ]
+        except (KeyError, TypeError, IndexError):
+            ch_names = [f"EEG_{index + 1}" for index in range(eeg_data.shape[0])]
+
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
+        raw = mne.io.RawArray(eeg_data, info, verbose=False)
+        target_ch = "EEG_5"
+        ref_chs = ["EEG_1", "EEG_8"]
+        raw.pick(ref_chs + [target_ch])
+        raw.set_eeg_reference(ref_channels=ref_chs, verbose=False)
+        raw.pick([target_ch])
+        raw.filter(l_freq=0.2, h_freq=10.0, method="fir", phase="zero", verbose=False)
+        raw.notch_filter(freqs=60.0, verbose=False)
+
+        if not marker_stream or len(marker_stream["time_stamps"]) == 0:
+            raise ValueError("No markers found in the provided XDF stream.")
+
+        raw_onsets = marker_stream["time_stamps"] - eeg_start_time
+        raw_desc = [str(marker[0]) if isinstance(marker, list) else str(marker)
+                    for marker in marker_stream["time_series"]]
+        valid_onsets, valid_durations, relabeled_desc = [], [], []
+        current_target = None
+        for index, description in enumerate(raw_desc):
+            if "Target_" in description:
+                current_target = description.split("Target_")[-1].strip()
+                continue
+            if description not in {"A", "B", "C", "D", "E"}:
+                continue
+            is_target = description == current_target
+            if index + 1 >= len(raw_desc):
+                continue
+            next_description = raw_desc[index + 1]
+            if next_description in {"A", "B", "C", "D", "E"} or "Target_" in next_description:
+                continue
+            is_correct = (is_target and next_description == "left") or (
+                not is_target and next_description == "right"
+            )
+            if is_correct:
+                valid_onsets.append(raw_onsets[index])
+                valid_durations.append(0)
+                relabeled_desc.append("Target" if is_target else "Standard")
+
+        raw.set_annotations(mne.Annotations(
+            onset=valid_onsets,
+            duration=valid_durations,
+            description=relabeled_desc,
+        ))
+        events, event_id_map = mne.events_from_annotations(raw, verbose=False)
+        stim_event_ids = {name: value for name, value in event_id_map.items()
+                          if name in ["Target", "Standard"]}
+        epochs = mne.Epochs(
+            raw, events=events, event_id=stim_event_ids,
+            tmin=-0.2, tmax=1.1, baseline=(-0.2, 0), preload=True, verbose=False,
+        )
+        erp_results = {}
+        for condition in ["Target", "Standard"]:
+            if condition in epochs.event_id:
+                erp_results[condition] = epochs[condition].average().data[0] * 1e6
+        return epochs.times * 1000.0, erp_results
     
     def eeg_inlet_filter_worker(self):
         # Thread Initialization

@@ -238,8 +238,8 @@ class PsychoPyTab:
     def __init__(self):
             
             self.primary_select = view_elements.ComboDisplayWidget(
-                combo_item_list=['IMU',],
-                widget_list=['IMU_widget'],
+                combo_item_list=['ERP Pz Contrast'],
+                widget_list=['ERP_widget'],
                 display_tag='exp_primary_display'
             )
             self.alpha_select = view_elements.ComboDisplayWidget(
@@ -282,7 +282,7 @@ class PsychoPyTab:
                     with dpg.child_window(border=False, height=0, tag="exp_primary_display"):
 
                         ## Display 1
-                        self.primary_select.build('IMU')
+                        self.primary_select.build('ERP Pz Contrast')
                     
                     # COLUMN 2: Secondary Displays
                     with dpg.child_window(border=False, height=0, no_scrollbar=True,

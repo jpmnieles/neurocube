@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 import dearpygui.dearpygui as dpg
 
 import view_elements
@@ -9,6 +10,9 @@ class WidgetManager:
     def __init__(self):
         # Setup Hidden Staging Window
         self.build_hidden_staging_window()
+        base_dir = Path(__file__).resolve().parents[2]
+        recording_root = base_dir / "data"
+        default_erp_path = recording_root if recording_root.exists() else base_dir
 
         # Initialize Widgets
         self.widgets = {
@@ -19,12 +23,51 @@ class WidgetManager:
             "Temp_widget": TempPlot("Temp_widget", parent="hidden_stage"),
             "GSR_widget": GSRPlot("GSR_widget", parent="hidden_stage"),
             "Marker_widget": MarkerPlot("Marker_widget", parent="hidden_stage"),
+            "ERP_widget": ERPPlot(
+                "ERP_widget",
+                parent="hidden_stage",
+                default_path=str(default_erp_path),
+            ),
         }
 
     def build_hidden_staging_window(self):
             with dpg.window(tag="hidden_stage", no_move=True, no_resize=True, show=False): 
                 pass
 
+
+class ERPPlot:
+    def __init__(self, tag, parent=0, default_path=""):
+        self.tag = tag
+        self.parent = parent
+        self.default_path = default_path
+        self.build()
+
+    def build(self):
+        with dpg.child_window(tag=self.tag, border=True, height=0, width=-1, parent=self.parent):
+            with dpg.group(horizontal=True):
+                dpg.add_input_text(tag="erp_file_path", width=-158, hint="Select an XDF file")
+                dpg.add_button(label="Browse", tag="erp_browse_btn", width=70)
+                dpg.add_button(label="Load", tag="erp_load_btn", width=70)
+
+            dpg.add_spacer(height=1)
+
+            with dpg.plot(height=-1, width=-1, tag="erp_plot"):
+                dpg.add_plot_legend()
+                dpg.add_plot_axis(dpg.mvXAxis, label="Time (ms)", tag="erp_x_axis")
+                y_axis = dpg.add_plot_axis(dpg.mvYAxis, label="Amplitude (uV)", tag="erp_y_axis")
+                dpg.add_line_series([], [], label="Target", tag="erp_target_series", parent=y_axis)
+                dpg.add_line_series([], [], label="Standard", tag="erp_standard_series", parent=y_axis)
+
+            with dpg.file_dialog(
+                directory_selector=False,
+                show=False,
+                callback=None,
+                tag="erp_file_dialog",
+                default_path=self.default_path,
+                width=700,
+                height=500,
+            ):
+                dpg.add_file_extension(".xdf", color=(100, 200, 255, 255))
 
 class EEGPlot:
 

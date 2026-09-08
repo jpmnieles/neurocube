@@ -55,6 +55,9 @@ class UiPresenter:
         dpg.set_item_callback("recorder_toggle_btn", self.btn_recorder_toggle_cb)
         dpg.set_item_callback("psychopy_run_btn", self.btn_psychopy_run_cb)
         dpg.set_item_callback("experiment_select", self.experiment_select_cb)
+        dpg.set_item_callback("erp_browse_btn", self.erp_browse_cb)
+        dpg.set_item_callback("erp_file_dialog", self.erp_file_selected_cb)
+        dpg.set_item_callback("erp_load_btn", self.erp_load_cb)
 
     def setup(self):
         # Start the Model Threads
@@ -457,6 +460,19 @@ class UiPresenter:
                 dpg.set_value("log_stream", current_items + log_entry)
                 dpg.set_y_scroll("status_window", 999999)
 
+                if status_msg['source'] == "ERP":
+                    if status_msg['state'] == "RESULT":
+                        result = status_msg['data']
+                        times = result["times_ms"]
+                        erp_data = result["erp_data"]
+                        dpg.set_value("erp_target_series", [times, erp_data.get("Target", [])])
+                        dpg.set_value("erp_standard_series", [times, erp_data.get("Standard", [])])
+                        dpg.configure_item("erp_x_axis", auto_fit=True)
+                        dpg.configure_item("erp_y_axis", auto_fit=True)
+                    elif status_msg['state'] == "ERROR":
+                        print(f"[ERP] ERROR: {status_msg['message']}")
+                    continue
+
                 if status_msg['source'] != "RECORDER":
                     continue
 
@@ -478,6 +494,27 @@ class UiPresenter:
 
             except queue.Empty:
                 break  # No more ModelManager thread status messages
+
+    def erp_browse_cb(self):
+        dpg.show_item("erp_file_dialog")
+
+    @staticmethod
+    def erp_file_selected_cb(sender, app_data, user_data):
+        file_path = app_data.get("file_path_name", "") if isinstance(app_data, dict) else ""
+        if file_path:
+            dpg.set_value("erp_file_path", file_path)
+
+    def erp_load_cb(self):
+        file_path = dpg.get_value("erp_file_path").strip()
+        if not file_path:
+            print("[ERP] Select an XDF file first")
+            return
+
+        self.ctrl_queues["ERP"].put(CtrlMsg(
+            target="ERP",
+            action="PROCESS",
+            data={"file_path": file_path},
+        ).model_dump())
 
     ### Callbacks ###
     
