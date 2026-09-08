@@ -9,6 +9,7 @@ from liesl.files.labrecorder.cli_wrapper import LabRecorderCLI
 from typing import Any, Optional, Dict
 from pydantic import BaseModel
 
+from mne_lsl.lsl import StreamInlet, resolve_streams
 from mne_lsl.stream import StreamLSL
 
 import warnings
@@ -40,7 +41,8 @@ class ModelManager:
         self.recorder = LabRecorderController(
             data_root=self.base_dir/"data",
             executable_path=self.base_dir/"bin"/"LabRecorder-1.17.0-noble_amd64"/"bin"/"LabRecorderCLI",
-            stream_args=[{"name": "EEG_Board"}, {"name": "EMOTIBIT_PPG"}, {"name": "EMOTIBIT_ANC"}]
+            stream_args=[{"name": "EEG_Board"}, {"name": "EMOTIBIT_PPG"},
+                         {"name": "EMOTIBIT_ANC"}, {"name": "PsychoPy_Markers"}]
         )
         
         # Control Queues
@@ -48,6 +50,7 @@ class ModelManager:
             "EEG_INLET_FILTER": queue.Queue(),
             "PPG_INLET": queue.Queue(),
             "ANC_INLET": queue.Queue(),
+            "MARKER_INLET": queue.Queue(),
             "RECORDER": queue.Queue()
         }
 
@@ -63,7 +66,8 @@ class ModelManager:
             "EEG_TIME": queue.Queue(maxsize=1),
             "PPG_TIME": queue.Queue(maxsize=1),
             "TEMP_TIME": queue.Queue(maxsize=1),
-            "GSR_TIME": queue.Queue(maxsize=1)
+            "GSR_TIME": queue.Queue(maxsize=1),
+            "MARKER_TIME": queue.Queue()
         }
 
         # Aggregator Queue
@@ -77,6 +81,7 @@ class ModelManager:
             "EEG": threading.Thread(target=self.eeg_inlet_filter_worker, daemon=True),
             "PPG": threading.Thread(target=self.ppg_inlet_worker, daemon=True),
             "ANC": threading.Thread(target=self.anc_inlet_worker, daemon=True),
+            "MARKER": threading.Thread(target=self.marker_inlet_worker, daemon=True),
             "RECORDER": threading.Thread(target=self.recorder_worker, daemon=True)
         }
 
@@ -375,6 +380,69 @@ class ModelManager:
         finally:
             if inlet_stream is not None:
                 inlet_stream.disconnect()
+
+    def marker_inlet_worker(self):
+        worker_id = "MARKER"
+        print(f'[{worker_id}] Thread Starting')
+        is_streaming = True
+        sampling_rate = 100  # Match the PPG polling cadence
+        POLLING_TIME = 1.0/(2.0*sampling_rate)
+        inlet_stream = None
+        last_error = None
+
+        while True:
+            try:
+                try:
+                    cmd = self.ctrl_queues["MARKER_INLET"].get_nowait()
+                    action = cmd.get("action")
+                    if action == "START_STREAM":
+                        is_streaming = True
+                    elif action == "STOP_STREAM":
+                        is_streaming = False
+                except queue.Empty:
+                    pass
+
+                if not is_streaming:
+                    time.sleep(POLLING_TIME)
+                    continue
+
+                if inlet_stream is None:
+                    streams = resolve_streams(timeout=0.5)
+                    marker_info = next(
+                        (stream for stream in streams if stream.name == "PsychoPy_Markers"),
+                        None,
+                    )
+                    if marker_info is None:
+                        time.sleep(POLLING_TIME)
+                        continue
+                    inlet_stream = StreamInlet(marker_info)
+                    inlet_stream.open_stream()
+
+                chunk, timestamps = inlet_stream.pull_chunk(timeout=0.0)
+                if len(chunk) > 0:
+                    marker_values = [
+                        str(value[0] if hasattr(value, "__len__") and not isinstance(value, str)
+                            else value)
+                        for value in chunk]
+                    self.display_queues["MARKER_TIME"].put_nowait(
+                        (marker_values, timestamps)
+                    )
+                last_error = None
+                time.sleep(POLLING_TIME)
+
+            except Exception as e:
+                message = str(e)
+                if message != last_error:
+                    self.status_queue.put(StatusMsg(source=worker_id, state="ERROR",
+                                                    message=message).model_dump())
+                    last_error = message
+                if inlet_stream is not None:
+                    try:
+                        inlet_stream.close_stream()
+                    except Exception:
+                        pass
+                    inlet_stream = None
+                time.sleep(POLLING_TIME)
 
     def recorder_worker(self):
         worker_id = "RECORDER"

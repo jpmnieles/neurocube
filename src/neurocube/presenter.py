@@ -8,7 +8,15 @@ from models import CtrlMsg
 from views import MainView
 from processes import CmdMsg
 
-from widgets import EEGPlot, PPGPlot, TempPlot, GSRPlot
+from widgets import EEGPlot, PPGPlot, TempPlot, GSRPlot, MarkerPlot
+
+
+STIMULUS_MARKERS = {"A", "B", "C", "D", "E"}
+MARKER_COLORS = {
+    "stimulus": [255, 215, 0, 255],
+    "keypress": [0, 255, 255, 255],
+    "block": [255, 0, 255, 255],
+}
 
 
 class UiPresenter:
@@ -35,6 +43,7 @@ class UiPresenter:
         self.is_emotibit_connected = False
         self.is_psychopy_running = False
         self.is_recording = False
+        self.marker_lines = []
 
     def setup_callbacks(self):
         """Setup Model Callbacks"""
@@ -74,6 +83,7 @@ class UiPresenter:
             self.process_ppg_time_series_widget(window_start_time)
             self.process_temp_time_series_widget(window_start_time)
             self.process_gsr_time_series_widget(window_start_time)
+            self.process_marker_time_series_widget(window_start_time)
             
             dpg.render_dearpygui_frame()  # Throttling based on the Monitor Refresh Rate
 
@@ -250,6 +260,57 @@ class UiPresenter:
                         dpg.configure_item(f"gsr_ch{channel_num}_max_y_axis", label=f"{max_data_filtered:.2f}")
                         dpg.configure_item(f"gsr_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")                    
 
+    def process_marker_time_series_widget(self, window_start_time):
+        window_label = dpg.get_value("combo_marker_time_window")
+        window_time = MarkerPlot.combo2twindow_dict[window_label]
+
+        while True:
+            try:
+                marker_values, timestamps = self.display_queues["MARKER_TIME"].get_nowait()
+            except queue.Empty:
+                break
+
+            for marker_value, timestamp in zip(marker_values, timestamps):
+                marker_time = float(timestamp)
+                relative_time = marker_time - window_start_time
+                line_color = self._marker_color(marker_value)
+                line_id = dpg.add_drag_line(
+                    label="", default_value=relative_time, color=line_color,
+                    vertical=True, parent="marker_ch1_plot"
+                )
+                annotation_id = dpg.add_plot_annotation(
+                    label=marker_value, default_value=(relative_time, 0.0),
+                    offset=(8, 0), color=line_color, clamped=True,
+                    parent="marker_ch1_plot"
+                )
+                self.marker_lines.append((marker_time, line_id, annotation_id))
+                dpg.set_value("Marker_widget_data_text", marker_value)
+
+        active_lines = []
+        for timestamp, line_id, annotation_id in self.marker_lines:
+            relative_timestamp = timestamp - window_start_time
+            if relative_timestamp < -window_time:
+                for item_id in (line_id, annotation_id):
+                    if dpg.does_item_exist(item_id):
+                        dpg.delete_item(item_id)
+                continue
+
+            if dpg.does_item_exist(line_id):
+                dpg.set_value(line_id, relative_timestamp)
+                dpg.set_value(annotation_id, [relative_timestamp, 0.0])
+                active_lines.append((timestamp, line_id, annotation_id))
+
+        self.marker_lines = active_lines
+        dpg.set_axis_limits("marker_ch1_x_axis", -window_time, 0)
+
+    @staticmethod
+    def _marker_color(marker_value):
+        if marker_value.startswith("Block_"):
+            return MARKER_COLORS["block"]
+        if marker_value in STIMULUS_MARKERS:
+            return MARKER_COLORS["stimulus"]
+        return MARKER_COLORS["keypress"]
+
     def process_status_mp_queue(self):
         # Process all pending status messages before rendering the frame
         while True:
@@ -416,12 +477,14 @@ class UiPresenter:
         self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="START_STREAM").model_dump())
         self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action="START_STREAM").model_dump())
         self.ctrl_queues['ANC_INLET'].put(CtrlMsg(target="Multi", action="START_STREAM").model_dump())
+        self.ctrl_queues['MARKER_INLET'].put(CtrlMsg(target="Markers", action="START_STREAM").model_dump())
 
     def btn_stop_stream_cb(self):
         print("[GUI] Clicked Stop Stream")
         self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="STOP_STREAM").model_dump())
         self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action="STOP_STREAM").model_dump())
         self.ctrl_queues['ANC_INLET'].put(CtrlMsg(target="Multi", action="STOP_STREAM").model_dump())
+        self.ctrl_queues['MARKER_INLET'].put(CtrlMsg(target="Markers", action="STOP_STREAM").model_dump())
 
     def btn_recorder_toggle_cb(self):
         if self.is_recording:
