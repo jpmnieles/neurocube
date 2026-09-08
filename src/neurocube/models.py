@@ -488,6 +488,7 @@ class LabRecorderController:
         self.lr = LabRecorderCLI(path_to_cmd=str(executable_path))
         self.stream_args = stream_args
         self.target_path = None
+        self.recording_path = None
 
     def set_stream_args(self, stream_args: list):
         self.stream_args = stream_args
@@ -506,11 +507,16 @@ class LabRecorderController:
         self.target_path = subject_dir / filename
         
         # 4. Start recording to the specified path
-        self.lr.start_recording(filename=str(self.target_path), streamargs=self.stream_args)
+        self.recording_path = Path(self.lr.start_recording(
+            filename=str(self.target_path), streamargs=self.stream_args
+        ))
 
     def stop_recording(self):
         """Stops the LabRecorder CLI."""
         self.lr.stop_recording()
+        if self.recording_path and self.recording_path != self.target_path:
+            self.recording_path.rename(self.target_path)
+        self.recording_path = None
 
 
 if __name__ == '__main__':
