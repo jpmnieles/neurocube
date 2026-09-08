@@ -586,7 +586,7 @@ class UiPresenter:
 
     def update_window_layouts(self):
         # ----- Monitor Tab Secondary Display (For Alpha and Beta Displays) -----#
-        if dpg.does_item_exist("monitor_sec_display") and dpg.get_item_configuration("monitor_sec_display")['show']:
+        if self.view.active_tab == "monitor_tab" and dpg.does_item_exist("monitor_sec_display"):
             parent_height = dpg.get_item_rect_size("monitor_sec_display")[1]
             
             # Subtracting height of spacers to prevent scroll bar from appearing.
@@ -600,6 +600,19 @@ class UiPresenter:
                 dpg.configure_item("alpha_display", height=half_height)
                 dpg.configure_item("beta_display", height=half_height)
 
+        # ----- PsychoPy Tab Secondary Displays -----#
+        if self.view.active_tab == "psychopy_tab" and dpg.does_item_exist("exp_sec_display"):
+            parent_height = dpg.get_item_rect_size("exp_sec_display")[1]
+
+            # Subtract the spacer and separator heights between the displays.
+            available_height = parent_height - 10
+
+            if available_height > 20:
+                alpha_height = int(available_height * 0.20)
+                beta_height = available_height - alpha_height
+                dpg.configure_item("exp_alpha_display", height=alpha_height)
+                dpg.configure_item("exp_beta_display", height=beta_height)
+
         # ----- EEG Widget -----#
         channel_type = "eeg"       
         if dpg.does_item_exist(f"{channel_type}_plots_parent") and dpg.get_item_configuration(f"{channel_type}_plots_parent")['show']:
@@ -608,10 +621,10 @@ class UiPresenter:
             visible_ch = [i for i in range(1, 9) if dpg.get_value(f"en_{channel_type}_ch{i}")]
             num_visible_ch = len(visible_ch)
 
-            if available_height > 20 and num_visible_ch > 0:
-                available_height = eeg_group_plot_height - 4*(num_visible_ch-1)
-                portion_height = available_height // num_visible_ch
-                remainder_height = available_height % num_visible_ch
+            if eeg_group_plot_height > 20 and num_visible_ch > 0:
+                available_plot_height = eeg_group_plot_height - 4*(num_visible_ch-1)
+                portion_height = available_plot_height // num_visible_ch
+                remainder_height = available_plot_height % num_visible_ch
                 
                 for channel_num in visible_ch:
                     item_tag = f"{channel_type}_ch{channel_num}_group_ch_plot"
@@ -624,13 +637,13 @@ class UiPresenter:
         # ----- PPG Widget -----#       
         channel_type = "ppg" 
         if dpg.does_item_exist(f"{channel_type}_plots_parent") and dpg.get_item_configuration(f"{channel_type}_plots_parent")['show']:
-            eeg_group_plot_height = dpg.get_item_rect_size(f"{channel_type}_plots_parent")[1]
+            ppg_group_plot_height = dpg.get_item_rect_size(f"{channel_type}_plots_parent")[1]
             num_visible_ch = 3
 
-            if available_height > 20 and num_visible_ch > 0:
-                available_height = eeg_group_plot_height - 4*(num_visible_ch-1)
-                portion_height = available_height // num_visible_ch
-                remainder_height = available_height % num_visible_ch
+            if ppg_group_plot_height > 20 and num_visible_ch > 0:
+                available_plot_height = ppg_group_plot_height - 4*(num_visible_ch-1)
+                portion_height = available_plot_height // num_visible_ch
+                remainder_height = available_plot_height % num_visible_ch
                 
                 for channel_num in range(1,4):
                     item_tag = f"{channel_type}_ch{channel_num}_group_ch_plot"

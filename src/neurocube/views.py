@@ -99,6 +99,7 @@ class MainView:
             
         # Setup Widgets
         self.widgets = WidgetManager()
+        self.active_tab = "monitor_tab"
         
         # View Components
         self.menu_bar = MenuBar()
@@ -142,8 +143,10 @@ class MainView:
     def tab_changed_callback(self, sender, app_data, user_data):
         selected_tab = dpg.get_item_alias(app_data)
         if selected_tab == "monitor_tab":
+            self.active_tab = selected_tab
             self.monitor_tab.activate()
         elif selected_tab == "psychopy_tab":
+            self.active_tab = selected_tab
             self.psychopy_tab.activate()
 
     def setup(self):
