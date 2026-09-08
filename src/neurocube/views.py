@@ -186,9 +186,14 @@ class DevicePanel:
             view_elements.DeviceBlock("PBM Module", "btn_pbm_device_connect")
         ]
         self.recorder = view_elements.LabRecorderWidget()
+        self.experiments = {
+            "ERP-CORE Active P3B Oddball Paradigm": "erp_core",
+        }
+        self.experiment = view_elements.ExperimentBlock(self.experiments)
 
     def build(self):
         with dpg.child_window(label="Device Rack Layout", width=150, height=0):  # Device Panel
+            ### DEVICES ###
             dpg.add_text("DEVICES", color=[150, 150, 255])
             dpg.add_separator()
             dpg.add_spacer(height=5)
@@ -196,14 +201,21 @@ class DevicePanel:
             # Individual HW Devices Connect/Disconnect
             for device in self.devices:
                 device.build()
+
+            ### EXPERIMENT ###
+            dpg.add_text("EXPERIMENT", color=[150, 150, 255])
+            dpg.add_separator()
+            dpg.add_spacer(height=5)
+            self.experiment.build()
+
+            ### RECORDER ###
+            self.recorder.build()
             
             # Placeholder for the space
-            with dpg.child_window(height=-370, border=False):
+            with dpg.child_window(height=-400, border=False):
                 pass
 
-            self.recorder.build()
-
-            # Start and Stop Stream
+            ### Start and Stop Stream  ###
             with dpg.group(horizontal=True, height=45):
                 dpg.add_button(label="Start\nStream", tag="start_stream_btn", width=62.5)
                 dpg.add_button(label="Stop\nStream", tag="stop_stream_btn", width=-1)
@@ -245,25 +257,11 @@ class PsychoPyTab:
         with dpg.tab(label="PsychoPy", tag="psychopy_tab"):
             # First Section
             with dpg.child_window(border=False, height=80):
-                dpg.add_text("Experiment", color=[150, 150, 255])
-                dpg.add_separator()
-
-                dpg.add_text("Ready", tag="psychopy_status")
-                with dpg.group(horizontal=True):
-                    with dpg.drawlist(width=20, height=24):
-                        dpg.draw_circle(
-                            center=[10, 12],
-                            radius=6,
-                            color=[128, 128, 128, 255],
-                            fill=[128, 128, 128, 255],
-                            tag="psychopy_indicator"
-                        )
-                    dpg.add_button(
-                        label="Run ERP Experiment",
-                        tag="psychopy_run_btn",
-                        width=220,
-                        height=24
-                    )
+                dpg.add_text(
+                    "ERP-CORE Active P3B Oddball Paradigm",
+                    tag="psychopy_experiment_name",
+                )
+                dpg.bind_item_font("psychopy_experiment_name", "dynamic_font_24")
 
             dpg.add_separator()
             dpg.add_spacer(height=1)

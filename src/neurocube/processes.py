@@ -1,6 +1,7 @@
 import time
 import multiprocessing as mp
 import queue
+import importlib
 import numpy as np
 from typing import Any, Optional, Dict
 from datetime import datetime
@@ -371,7 +372,7 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
                                    message="Exiting Process").model_dump())
 
 
-def psychopy_process(status_queue: mp.Queue):
+def psychopy_process(status_queue: mp.Queue, experiment_module: str = "erp_core"):
     process_id = "PSYCHOPY"
     status_queue.put(StatusMpMsg(
         source=process_id,
@@ -380,12 +381,10 @@ def psychopy_process(status_queue: mp.Queue):
     ).model_dump())
 
     try:
-        try:
-            from .exps import erp_core
-        except ImportError:
-            from exps import erp_core
+        package_name = f"{__package__}.exps" if __package__ else "exps"
+        experiment = importlib.import_module(f"{package_name}.{experiment_module}")
 
-        erp_core.main()
+        experiment.main()
     except SystemExit:
         # PsychoPy uses core.quit(), which raises SystemExit on normal exit.
         pass

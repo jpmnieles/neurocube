@@ -32,6 +32,41 @@ class DeviceBlock:
             dpg.add_spacer(height=5)
 
 
+class ExperimentBlock:
+    """Experiment selector and process control component."""
+    def __init__(self, experiments, combo_tag="experiment_select"):
+        self.experiments = experiments
+        self.combo_tag = combo_tag
+        self.btn_tag = "psychopy_run_btn"
+        self.status_tag = "psychopy_status"
+        self.indicator_tag = "psychopy_indicator"
+
+    def build(self):
+        with dpg.group():
+            dpg.add_combo(
+                items=list(self.experiments),
+                default_value=list(self.experiments)[0],
+                tag=self.combo_tag,
+                width=-1,
+            )
+            dpg.add_spacer(height=2)
+            dpg.add_button(label="Start Experiment", width=-1, tag=self.btn_tag)
+
+            with dpg.group(horizontal=True):
+                with dpg.drawlist(width=16, height=20):
+                    dpg.draw_circle(
+                        center=[8, 10], radius=5,
+                        color=[128, 128, 128, 255],
+                        fill=[128, 128, 128, 255],
+                        tag=self.indicator_tag,
+                    )
+                dpg.add_text("Ready", color=[160, 160, 160], tag=self.status_tag)
+
+            dpg.add_spacer(height=5)
+            dpg.add_separator()
+            dpg.add_spacer(height=5)
+
+
 class LabRecorderWidget:
     """Controls LabRecorder metadata and recording state."""
     def __init__(self):

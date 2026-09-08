@@ -54,6 +54,7 @@ class UiPresenter:
         dpg.set_item_callback("btn_emotibit_device_connect", self.btn_emotibit_open_device_cb)
         dpg.set_item_callback("recorder_toggle_btn", self.btn_recorder_toggle_cb)
         dpg.set_item_callback("psychopy_run_btn", self.btn_psychopy_run_cb)
+        dpg.set_item_callback("experiment_select", self.experiment_select_cb)
 
     def setup(self):
         # Start the Model Threads
@@ -422,19 +423,22 @@ class UiPresenter:
                         self.is_psychopy_running = True
                         dpg.set_value("psychopy_status", "Running")
                         dpg.configure_item("psychopy_indicator", color=[0, 255, 0, 255], fill=[0, 255, 0, 255])
-                        dpg.configure_item("psychopy_run_btn", enabled=False)
+                        dpg.configure_item("psychopy_run_btn", label="Stop Experiment", enabled=True)
+                        dpg.configure_item("experiment_select", enabled=False)
                     elif status_msg['state'] == "EXIT":
                         self.is_psychopy_running = False
                         dpg.set_value("psychopy_status", "Ready")
                         dpg.configure_item("psychopy_indicator", color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
-                        dpg.configure_item("psychopy_run_btn", enabled=True)
+                        dpg.configure_item("psychopy_run_btn", label="Start Experiment", enabled=True)
+                        dpg.configure_item("experiment_select", enabled=True)
                         if self.process_manager:
                             self.process_manager.stop_process("PSYCHOPY")
                     elif status_msg['state'] == "ERROR":
                         self.is_psychopy_running = False
                         dpg.set_value("psychopy_status", "Error")
                         dpg.configure_item("psychopy_indicator", color=[255, 0, 0, 255], fill=[255, 0, 0, 255])
-                        dpg.configure_item("psychopy_run_btn", enabled=True)
+                        dpg.configure_item("psychopy_run_btn", label="Start Experiment", enabled=True)
+                        dpg.configure_item("experiment_select", enabled=True)
                         if self.process_manager:
                             self.process_manager.stop_process("PSYCHOPY")
 
@@ -575,14 +579,34 @@ class UiPresenter:
                     self.process_manager.stop_process("EMOTIBIT")
 
     def btn_psychopy_run_cb(self):
-        if self.is_psychopy_running or not self.process_manager:
+        if not self.process_manager:
+            return
+
+        if self.is_psychopy_running:
+            dpg.configure_item("psychopy_run_btn", label="Stopping...", enabled=False)
+            self.process_manager.stop_process("PSYCHOPY")
+            self.is_psychopy_running = False
+            dpg.set_value("psychopy_status", "Ready")
+            dpg.configure_item(
+                "psychopy_indicator",
+                color=[128, 128, 128, 255],
+                fill=[128, 128, 128, 255],
+            )
+            dpg.configure_item("psychopy_run_btn", label="Start Experiment", enabled=True)
+            dpg.configure_item("experiment_select", enabled=True)
             return
 
         self.is_psychopy_running = True
         dpg.set_value("psychopy_status", "Starting")
         dpg.configure_item("psychopy_indicator", color=[255, 200, 0, 255], fill=[255, 200, 0, 255])
-        dpg.configure_item("psychopy_run_btn", enabled=False)
-        self.process_manager.start_process("PSYCHOPY")
+        dpg.configure_item("psychopy_run_btn", label="Starting...", enabled=False)
+        dpg.configure_item("experiment_select", enabled=False)
+        experiment_name = dpg.get_value("experiment_select")
+        experiment_module = self.view.device_panel.experiments[experiment_name]
+        self.process_manager.start_process("PSYCHOPY", experiment_module=experiment_module)
+
+    def experiment_select_cb(self, sender, app_data, user_data):
+        dpg.set_value("psychopy_experiment_name", app_data)
 
     def update_window_layouts(self):
         # ----- Monitor Tab Secondary Display (For Alpha and Beta Displays) -----#

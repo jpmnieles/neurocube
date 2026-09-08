@@ -15,7 +15,7 @@ class ProcessManager:
         self.ctx = mp.get_context()
         self.active_workers = {}
 
-    def start_process(self, name):
+    def start_process(self, name, experiment_module="erp_core"):
         """Starts a process dynamically by name."""
         # Prevent starting if it's already running
         if name in self.active_workers and self.active_workers[name].is_alive():
@@ -38,7 +38,7 @@ class ProcessManager:
         elif name == "PSYCHOPY":
             p = self.ctx.Process(
                 target=psychopy_process,
-                args=(self.status_queue,),
+                args=(self.status_queue, experiment_module),
                 daemon=True
             )
         else:
