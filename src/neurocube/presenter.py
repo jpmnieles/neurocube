@@ -43,6 +43,7 @@ class UiPresenter:
         self.is_emotibit_connected = False
         self.is_psychopy_running = False
         self.is_recording = False
+        self.is_streaming = True
         self.marker_lines = []
 
     def setup_callbacks(self):
@@ -261,8 +262,12 @@ class UiPresenter:
                         dpg.configure_item(f"gsr_ch{channel_num}_min_y_axis", label=f"{min_data_filtered:.2f}")                    
 
     def process_marker_time_series_widget(self, window_start_time):
+        if not self.is_streaming:
+            return
+
         window_label = dpg.get_value("combo_marker_time_window")
         window_time = MarkerPlot.combo2twindow_dict[window_label]
+        max_window_time = 20
 
         while True:
             try:
@@ -280,7 +285,7 @@ class UiPresenter:
                 )
                 annotation_id = dpg.add_plot_annotation(
                     label=marker_value, default_value=(relative_time, 0.0),
-                    offset=(8, 0), color=line_color, clamped=True,
+                    offset=(8, 0), color=line_color, clamped=False,
                     parent="marker_ch1_plot"
                 )
                 self.marker_lines.append((marker_time, line_id, annotation_id))
@@ -289,7 +294,7 @@ class UiPresenter:
         active_lines = []
         for timestamp, line_id, annotation_id in self.marker_lines:
             relative_timestamp = timestamp - window_start_time
-            if relative_timestamp < -window_time:
+            if relative_timestamp < -max_window_time:
                 for item_id in (line_id, annotation_id):
                     if dpg.does_item_exist(item_id):
                         dpg.delete_item(item_id)
@@ -474,6 +479,7 @@ class UiPresenter:
     
     def btn_start_stream_cb(self):
         print("[GUI] Clicked Start Stream")
+        self.is_streaming = True
         self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="START_STREAM").model_dump())
         self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action="START_STREAM").model_dump())
         self.ctrl_queues['ANC_INLET'].put(CtrlMsg(target="Multi", action="START_STREAM").model_dump())
@@ -481,6 +487,7 @@ class UiPresenter:
 
     def btn_stop_stream_cb(self):
         print("[GUI] Clicked Stop Stream")
+        self.is_streaming = False
         self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="STOP_STREAM").model_dump())
         self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action="STOP_STREAM").model_dump())
         self.ctrl_queues['ANC_INLET'].put(CtrlMsg(target="Multi", action="STOP_STREAM").model_dump())
