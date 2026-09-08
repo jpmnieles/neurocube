@@ -608,7 +608,7 @@ class UiPresenter:
             available_height = parent_height - 10
 
             if available_height > 20:
-                alpha_height = int(available_height * 0.20)
+                alpha_height = int(available_height * 0.25)
                 beta_height = available_height - alpha_height
                 dpg.configure_item("exp_alpha_display", height=alpha_height)
                 dpg.configure_item("exp_beta_display", height=beta_height)
@@ -652,4 +652,13 @@ class UiPresenter:
                             dpg.configure_item(item_tag, height=portion_height)
                         else:
                             dpg.configure_item(item_tag, height=portion_height+remainder_height)
+
+        # ----- Marker Widget -----#
+        channel_type = "marker"
+        if dpg.does_item_exist(f"{channel_type}_plots_parent") and dpg.get_item_configuration(f"{channel_type}_plots_parent")['show']:
+            marker_group_plot_height = dpg.get_item_rect_size(f"{channel_type}_plots_parent")[1]
+            item_tag = f"{channel_type}_ch1_group_ch_plot"
+
+            if marker_group_plot_height > 20 and dpg.does_item_exist(item_tag):
+                dpg.configure_item(item_tag, height=marker_group_plot_height)
     

@@ -374,7 +374,8 @@ class MarkerPlot:
                     dpg.bind_item_font(self.data_text, f"dynamic_font_{font_size}")
 
             dpg.add_spacer(height=1)
-            self.marker_plot.build(channel_num=1, height=-45)
+            with dpg.child_window(border=False, tag="marker_plots_parent", height=-45, no_scrollbar=True):
+                self.marker_plot.build(channel_num=1, height=-1)
             view_elements.AxisOnlyPlot("marker").build()
             self.time_window_callback(None, "5 sec", None)
 
