@@ -239,18 +239,18 @@ class MonitorTab:
     def __init__(self):
         
         self.primary_select = view_elements.ComboDisplayWidget(
-            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA'],
-            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget'],
+            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA','PsychoPy Markers'],
+            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget','Marker_widget'],
             display_tag='primary_display'
         )
         self.alpha_select = view_elements.ComboDisplayWidget(
-            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA'],
-            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget'],
+            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA','PsychoPy Markers'],
+            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget','Marker_widget'],
             display_tag='alpha_display'
         )
         self.beta_select = view_elements.ComboDisplayWidget(
-            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA'],
-            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget'],
+            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA','PsychoPy Markers'],
+            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget','Marker_widget'],
             display_tag='beta_display'
         )
 

@@ -12,12 +12,13 @@ class WidgetManager:
 
         # Initialize Widgets
         self.widgets = {
-             "EEG_widget": EEGPlot("EEG_widget", parent="hidden_stage"),
-             "PPG_widget": PPGPlot("PPG_widget", parent="hidden_stage"),
-             "IMU_widget": view_elements.DynamicPlot("IMU_widget", "IMU", 
+            "EEG_widget": EEGPlot("EEG_widget", parent="hidden_stage"),
+            "PPG_widget": PPGPlot("PPG_widget", parent="hidden_stage"),
+            "IMU_widget": view_elements.DynamicPlot("IMU_widget", "IMU", 
                                                      height=0, parent="hidden_stage"),
-             "Temp_widget": TempPlot("Temp_widget", parent="hidden_stage"),
-             "GSR_widget": GSRPlot("GSR_widget", parent="hidden_stage"),
+            "Temp_widget": TempPlot("Temp_widget", parent="hidden_stage"),
+            "GSR_widget": GSRPlot("GSR_widget", parent="hidden_stage"),
+            "Marker_widget": MarkerPlot("Marker_widget", parent="hidden_stage"),
         }
 
     def build_hidden_staging_window(self):
@@ -338,4 +339,46 @@ class GSRPlot:
         WINDOW_TIME = self.combo2twindow_dict[app_data]
         channel_num = 2
         dpg.set_axis_limits(f"gsr_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
-        dpg.set_axis_limits("gsr_static_x_axis", -WINDOW_TIME, 0)    
+        dpg.set_axis_limits("gsr_static_x_axis", -WINDOW_TIME, 0)
+
+
+class MarkerPlot:
+
+    combo2twindow_dict = {
+        "5 sec": 5,
+        "10 sec": 10,
+        "20 sec": 20,
+    }
+
+    def __init__(self, tag, parent=0, height=0):
+        self.tag = tag
+        self.height = height
+        self.parent = parent
+        self.data_text = f"{tag}_data_text"
+        self.marker_plot = view_elements.MarkerChannelPlot("marker")
+        self.build()
+
+    def build(self):
+        with dpg.child_window(tag=self.tag, border=True, height=self.height, width=-1, parent=self.parent):
+            with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit, tag="marker_options_table"):
+                dpg.add_table_column(width_stretch=True)
+                dpg.add_table_column(width_fixed=True)
+                dpg.add_table_column(width_fixed=True)
+                with dpg.table_row():
+                    dpg.add_text("No markers", tag=self.data_text)
+                    dpg.add_spacer(height=1)
+                    dpg.add_combo(items=list(self.combo2twindow_dict),
+                                  default_value="5 sec", tag="combo_marker_time_window", width=80,
+                                  callback=self.time_window_callback)
+                    font_size = 20
+                    dpg.bind_item_font(self.data_text, f"dynamic_font_{font_size}")
+
+            dpg.add_spacer(height=1)
+            self.marker_plot.build(channel_num=1, height=-45)
+            view_elements.AxisOnlyPlot("marker").build()
+            self.time_window_callback(None, "5 sec", None)
+
+    def time_window_callback(self, sender, app_data, user_data):
+        window_time = self.combo2twindow_dict[app_data]
+        dpg.set_axis_limits("marker_ch1_x_axis", -window_time, 0)
+        dpg.set_axis_limits("marker_static_x_axis", -window_time, 0)
