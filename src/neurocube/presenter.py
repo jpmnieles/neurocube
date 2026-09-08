@@ -289,7 +289,7 @@ class UiPresenter:
                     parent="marker_ch1_plot"
                 )
                 self.marker_lines.append((marker_time, line_id, annotation_id))
-                dpg.set_value("Marker_widget_data_text", marker_value)
+                dpg.set_value("Marker_widget_data_text", f"Marker: {marker_value}")
 
         active_lines = []
         for timestamp, line_id, annotation_id in self.marker_lines:

@@ -365,7 +365,7 @@ class MarkerPlot:
                 dpg.add_table_column(width_fixed=True)
                 dpg.add_table_column(width_fixed=True)
                 with dpg.table_row():
-                    dpg.add_text("No markers", tag=self.data_text)
+                    dpg.add_text("Marker: None", tag=self.data_text)
                     dpg.add_spacer(height=1)
                     dpg.add_combo(items=list(self.combo2twindow_dict),
                                   default_value="5 sec", tag="combo_marker_time_window", width=80,
