@@ -134,9 +134,10 @@ class ComboDisplayWidget:
             self.dropdown_callback(f"combo_{self.display_tag}", default_value, self.display_tag)
 
     def activate(self):
-        if self.selected_value:
+        combo_tag = f"combo_{self.display_tag}"
+        if self.selected_value and not dpg.get_value(combo_tag):
             self.dropdown_callback(
-                f"combo_{self.display_tag}", self.selected_value, self.display_tag
+                combo_tag, self.selected_value, self.display_tag
             )
 
 
