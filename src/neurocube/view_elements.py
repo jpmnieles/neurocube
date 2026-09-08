@@ -75,6 +75,7 @@ class ComboDisplayWidget:
         self.combo_item_list = combo_item_list
         self.widget_list = widget_list
         self.display_tag = display_tag
+        self.selected_value = ''
         self.combo2widget_dict = self._make_combo2widget_map(combo_item_list, widget_list)
         self.widget2combo_dict = self._make_widget2combo_map(widget_list, combo_item_list)
 
@@ -105,6 +106,8 @@ class ComboDisplayWidget:
         app_data: The string value selected in the dropdown (e.g., 'Child Window 4')  # Widget
         user_data: The tag of the parent display window hosting this combo box  # Tag of the Parent
         """
+        self.selected_value = app_data
+        dpg.set_value(sender, app_data)
         chosen_child_tag = self.combo2widget_dict[app_data]
         source_display_tag = dpg.get_item_parent(chosen_child_tag)
         target_display_tag = user_data
@@ -129,6 +132,12 @@ class ComboDisplayWidget:
                         default_value=default_value, width=200)
         if default_value:
             self.dropdown_callback(f"combo_{self.display_tag}", default_value, self.display_tag)
+
+    def activate(self):
+        if self.selected_value:
+            self.dropdown_callback(
+                f"combo_{self.display_tag}", self.selected_value, self.display_tag
+            )
 
 
 class DynamicPlot:

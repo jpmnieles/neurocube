@@ -127,13 +127,24 @@ class MainView:
                 
                 # Multipanel
                 with dpg.child_window(label="Multipanel", border=False, height=0):
-                    with dpg.tab_bar():
+                    with dpg.tab_bar(tag="main_tab_bar", callback=self.tab_changed_callback):
                         self.monitor_tab.build()
                         self.medicalforms_tab.build()
                         self.psychopy_tab.build()
-            
+
             # Logger Panel
             self.logger_panel.build()
+
+        # The first tab is active by default. Its selected widgets must win
+        # over selections restored while the other tabs were built.
+        self.monitor_tab.activate()
+
+    def tab_changed_callback(self, sender, app_data, user_data):
+        selected_tab = dpg.get_item_alias(app_data)
+        if selected_tab == "monitor_tab":
+            self.monitor_tab.activate()
+        elif selected_tab == "psychopy_tab":
+            self.psychopy_tab.activate()
 
     def setup(self):
 
@@ -209,12 +220,31 @@ class LoggerPanel:
 
 class PsychoPyTab:
 
+    def __init__(self):
+            
+            self.primary_select = view_elements.ComboDisplayWidget(
+                combo_item_list=['IMU',],
+                widget_list=['IMU_widget'],
+                display_tag='exp_primary_display'
+            )
+            self.alpha_select = view_elements.ComboDisplayWidget(
+                combo_item_list=['PsychoPy Markers'],
+                widget_list=['Marker_widget'],
+                display_tag='exp_alpha_display'
+            )
+            self.beta_select = view_elements.ComboDisplayWidget(
+                combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA'],
+                widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget'],
+                display_tag='exp_beta_display'
+            )
+
     def build(self):
-        with dpg.tab(label="PsychoPy"):
-            with dpg.child_window(border=False, height=0):
+        with dpg.tab(label="PsychoPy", tag="psychopy_tab"):
+            # First Section
+            with dpg.child_window(border=False, height=100):
                 dpg.add_text("ERP Experiment", color=[150, 150, 255])
                 dpg.add_separator()
-                dpg.add_spacer(height=10)
+                dpg.add_spacer(height=1)
 
                 dpg.add_text("Ready", tag="psychopy_status")
                 with dpg.group(horizontal=True):
@@ -232,6 +262,51 @@ class PsychoPyTab:
                         width=220,
                         height=32
                     )
+            dpg.add_separator()
+            dpg.add_spacer(height=1)
+
+            # Second Section
+            # DPG Table for Modular Display Configuration
+            with dpg.table(header_row=False, policy=dpg.mvTable_SizingStretchProp, 
+                            resizable=True, scrollX=True, scrollY=True, height=0, tag='exp_table'):
+                
+                # Column Width: 60% Primary Display, 40% Secondary Display
+                dpg.add_table_column(init_width_or_weight=0.30)
+                dpg.add_table_column(init_width_or_weight=0.70)
+                
+                # Insert Table Row
+                with dpg.table_row():
+                    
+                    # COLUMN 1: Primary Display
+                    with dpg.child_window(border=False, height=0, tag="exp_primary_display"):
+
+                        ## Display 1
+                        self.primary_select.build('IMU')
+                    
+                    # COLUMN 2: Secondary Displays
+                    with dpg.child_window(border=False, height=0, no_scrollbar=True,
+                                            tag="exp_sec_display"):
+                        
+                        ## Display 2A
+                        with dpg.child_window(border=False, height=420, tag="exp_alpha_display"):
+                            self.alpha_select.build('PsychoPy Markers')
+                        
+                        ## Separator
+                        dpg.add_spacer(height=5)
+                        dpg.add_separator()
+                        dpg.add_spacer(height=5)
+                        
+                        ## Display 2B
+                        with dpg.child_window(border=False, height=0, tag="exp_beta_display"):
+                            self.beta_select.build('EEG')
+
+            # Bind the theme
+            dpg.bind_item_theme("exp_table", "table_no_pad_theme")
+
+    def activate(self):
+        self.primary_select.activate()
+        self.alpha_select.activate()
+        self.beta_select.activate()
 
 
 class MonitorTab:
@@ -256,7 +331,7 @@ class MonitorTab:
 
     def build(self):
         # Referenced to Main View Tab
-        with dpg.tab(label="Monitor"):
+        with dpg.tab(label="Monitor", tag="monitor_tab"):
             # Adding Explicit Top Spacer
             dpg.add_spacer(height=2)
 
@@ -296,6 +371,11 @@ class MonitorTab:
 
             # Bind the theme
             dpg.bind_item_theme("monitor_table", "table_no_pad_theme")
+
+    def activate(self):
+        self.primary_select.activate()
+        self.alpha_select.activate()
+        self.beta_select.activate()
 
 
 class MedicalFormsTab:
