@@ -378,3 +378,66 @@ class AxisOnlyPlot:
                 
                 # Bind transparency layouts to keep workspace completely clean
                 dpg.bind_item_theme(self.plot_tag, "transparent_plot_theme")
+
+
+class SyncedSlider:
+    def __init__(self, tag_name, label, default_value=10, min_val=0, max_val=40, width=350, parent=None):
+        self.tag_name = tag_name
+        self.label = label
+        self.min_val = min_val
+        self.max_val = max_val
+        self.default_value = default_value
+        self.width = width
+        self.parent = parent
+        
+        # Register the shared value using your explicit name
+        with dpg.value_registry():
+            # Check if the tag already exists to prevent crashes
+            if not dpg.does_alias_exist(self.tag_name):
+                dpg.add_int_value(default_value=self.default_value, tag=self.tag_name)
+            
+        self.build()
+
+    def build(self):
+        container_kwargs = {"parent": self.parent} if self.parent else {}
+        
+        with dpg.group(**container_kwargs):
+            dpg.add_spacer(height=10)
+            
+            # Top Row: Table handles perfect flush alignment
+            with dpg.table(header_row=False, width=self.width, 
+                           borders_innerV=False, borders_outerV=False, 
+                           borders_innerH=False, borders_outerH=False):
+                # The first column stretches, pushing the second column to the right
+                dpg.add_table_column(width_stretch=True)
+                # The second column fits exactly to the size of the input box
+                dpg.add_table_column(width_fixed=True)
+                
+                with dpg.table_row():
+                    dpg.add_text(self.label)
+                    # Width adjusted slightly so digits aren't cut off
+                    dpg.add_input_int(width=40, step=0, source=self.tag_name) 
+            
+            # Middle Row: The Slider
+            dpg.add_slider_int(
+                width=self.width, 
+                min_value=self.min_val, 
+                max_value=self.max_val, 
+                format="", 
+                source=self.tag_name
+            )
+            
+            # Bottom Row: Table handles left/right alignment automatically
+            with dpg.table(header_row=False, width=self.width, 
+                           borders_innerV=False, borders_outerV=False, 
+                           borders_innerH=False, borders_outerH=False):
+                dpg.add_table_column(width_stretch=True)
+                dpg.add_table_column(width_fixed=True)
+                
+                with dpg.table_row():
+                    dpg.add_text(str(self.min_val))
+                    dpg.add_text(str(self.max_val))
+
+    def get_value(self):
+        """Retrieve the value using your explicit tag."""
+        return dpg.get_value(self.tag_name)
