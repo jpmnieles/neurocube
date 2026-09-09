@@ -28,11 +28,95 @@ class WidgetManager:
                 parent="hidden_stage",
                 default_path=str(default_erp_path),
             ),
+            "PBM_widget": PBMWidget("PBM_widget", parent="hidden_stage"),
         }
 
     def build_hidden_staging_window(self):
             with dpg.window(tag="hidden_stage", no_move=True, no_resize=True, show=False): 
                 pass
+
+
+class PBMWidget:
+    def __init__(self, tag, parent=0):
+        self.tag = tag
+        self.parent = parent
+        self.slider_width = 400
+
+        # Sliders
+        self.intensity_slider = view_elements.SyncedSlider(
+            tag_name=f"{self.tag}_intensity",
+            label="Intensity (%):",
+            default_value=50,
+            min_val=0,
+            max_val=100,
+            width=self.slider_width,
+        )
+        self.pulse_freq_slider = view_elements.SyncedSlider(
+            tag_name=f"{self.tag}_pulse_freq",
+            label="Pulse Frequency (Hz):",
+            default_value=40,
+            min_val=1,
+            max_val=40,
+            width=self.slider_width,
+        )
+        self.duty_cycle_slider = view_elements.SyncedSlider(
+            tag_name=f"{self.tag}_duty_cycle",
+            label="Duty Cycle (%):",
+            default_value=50,
+            min_val=0,
+            max_val=100,
+            width=self.slider_width,
+        )
+        self.duration_slider = view_elements.SyncedSlider(
+            tag_name=f"{self.tag}_duration",
+            label="Durations (minutes):",
+            default_value=60,
+            min_val=1,
+            max_val=90,
+            width=self.slider_width,
+        )
+
+        self.build()
+
+    def build(self):
+        with dpg.child_window(tag=self.tag, border=True, height=0, width=-1, parent=self.parent):
+
+            # First Section
+            dpg.add_text("PHOTOBIOMODULATION NEUROSTIMULATION", tag=f"{self.tag}_title")
+
+            with dpg.group(horizontal=True):
+                dpg.add_button(label="Start", tag=f"{self.tag}_start_btn", width=80)
+                dpg.bind_item_theme(item=f"{self.tag}_start_btn", theme="green_btn_theme")
+
+                dpg.add_button(label="Stop", tag=f"{self.tag}_stop_btn", width=80)
+                dpg.bind_item_theme(item=f"{self.tag}_stop_btn", theme="red_btn_theme")
+
+            dpg.add_spacer(height=2)
+
+            # Second Section
+            with dpg.collapsing_header(label="Settings", tag=f"{self.tag}_settings", 
+                                       closable=False, default_open=True, indent=3):
+
+                dpg.add_spacer(height=2)
+
+                with dpg.group(horizontal=True):
+                    dpg.add_text("Mode:")
+                    dpg.add_radio_button(
+                        items=["Continuous Wave", "Pulsed Wave"],
+                        default_value="Pulsed Wave",
+                        tag=f"{self.tag}_mode_radio",
+                        horizontal=True,
+                    )
+
+                # Synced slider definitions
+                self.intensity_slider.build()
+                self.pulse_freq_slider.build()
+                self.duty_cycle_slider.build()
+                self.duration_slider.build()
+
+                dpg.add_spacer(height=2)
+
+                dpg.add_button(label="Apply", tag=f"{self.tag}_apply_btn", width=80)
 
 
 class ERPPlot:

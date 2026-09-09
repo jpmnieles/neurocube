@@ -395,8 +395,6 @@ class SyncedSlider:
             # Check if the tag already exists to prevent crashes
             if not dpg.does_alias_exist(self.tag_name):
                 dpg.add_int_value(default_value=self.default_value, tag=self.tag_name)
-            
-        self.build()
 
     def build(self):
         container_kwargs = {"parent": self.parent} if self.parent else {}

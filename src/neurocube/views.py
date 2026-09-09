@@ -388,8 +388,8 @@ class HardwareTab:
 
     def __init__(self):
         self.primary_select = view_elements.ComboDisplayWidget(
-            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA','PsychoPy Markers'],
-            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget','Marker_widget'],
+            combo_item_list=['PBM'],
+            widget_list=['PBM_widget'],
             display_tag='hardware_primary_display'
         )
 
@@ -398,7 +398,7 @@ class HardwareTab:
             dpg.add_spacer(height=2)
 
             with dpg.child_window(border=False, height=0, tag="hardware_primary_display"):
-                self.primary_select.build('EEG')
+                self.primary_select.build('PBM')
 
     def activate(self):
         self.primary_select.activate()
