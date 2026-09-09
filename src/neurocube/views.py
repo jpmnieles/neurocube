@@ -106,6 +106,7 @@ class MainView:
         self.device_panel = DevicePanel()
         self.logger_panel = LoggerPanel()
         self.monitor_tab = MonitorTab()
+        self.hardware_tab = HardwareTab()
         self.eeg_tab = EEGTab()
         self.smartwatch_tab = SmartwatchTab()
         self.medicalforms_tab = MedicalFormsTab()
@@ -130,6 +131,7 @@ class MainView:
                 with dpg.child_window(label="Multipanel", border=False, height=0):
                     with dpg.tab_bar(tag="main_tab_bar", callback=self.tab_changed_callback):
                         self.monitor_tab.build()
+                        self.hardware_tab.build()
                         self.medicalforms_tab.build()
                         self.psychopy_tab.build()
 
@@ -145,6 +147,9 @@ class MainView:
         if selected_tab == "monitor_tab":
             self.active_tab = selected_tab
             self.monitor_tab.activate()
+        elif selected_tab == "hardware_tab":
+            self.active_tab = selected_tab
+            self.hardware_tab.activate()
         elif selected_tab == "psychopy_tab":
             self.active_tab = selected_tab
             self.psychopy_tab.activate()
@@ -377,6 +382,26 @@ class MonitorTab:
         self.primary_select.activate()
         self.alpha_select.activate()
         self.beta_select.activate()
+
+
+class HardwareTab:
+
+    def __init__(self):
+        self.primary_select = view_elements.ComboDisplayWidget(
+            combo_item_list=['EEG','PPG','IMU','Temperature','GSR/EDA','PsychoPy Markers'],
+            widget_list=['EEG_widget','PPG_widget','IMU_widget','Temp_widget','GSR_widget','Marker_widget'],
+            display_tag='hardware_primary_display'
+        )
+
+    def build(self):
+        with dpg.tab(label="Hardware", tag="hardware_tab"):
+            dpg.add_spacer(height=2)
+
+            with dpg.child_window(border=False, height=0, tag="hardware_primary_display"):
+                self.primary_select.build('EEG')
+
+    def activate(self):
+        self.primary_select.activate()
 
 
 class MedicalFormsTab:
