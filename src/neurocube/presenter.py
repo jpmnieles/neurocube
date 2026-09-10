@@ -92,6 +92,7 @@ class UiPresenter:
 
             self.view.widgets.widgets["PBM_widget"].update_timer()
             self.view.device_panel.recorder.update_timer()
+            self.view.device_panel.recorder.update_recording_visual()
             
             dpg.render_dearpygui_frame()  # Throttling based on the Monitor Refresh Rate
 
@@ -482,21 +483,18 @@ class UiPresenter:
                 if status_msg['state'] == "START_RECORD":
                     self.is_recording = True
                     self.view.device_panel.recorder.start_timer()
-                    dpg.set_value("recorder_status", "Recording")
-                    dpg.configure_item("recorder_toggle_btn", label="Stop Recording", enabled=True)
-                    dpg.configure_item("recorder_indicator", color=[0, 255, 0, 255], fill=[0, 255, 0, 255])
+                    self.view.device_panel.recorder.set_recording_active(True)
+                    dpg.configure_item("recorder_toggle_btn", label="Recording", enabled=True)
                 elif status_msg['state'] == "STOP_RECORD":
                     self.is_recording = False
                     self.view.device_panel.recorder.stop_timer()
-                    dpg.set_value("recorder_status", "Ready")
+                    self.view.device_panel.recorder.set_recording_active(False)
                     dpg.configure_item("recorder_toggle_btn", label="Start Recording", enabled=True)
-                    dpg.configure_item("recorder_indicator", color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
                 elif status_msg['state'] == "ERROR":
                     self.is_recording = False
                     self.view.device_panel.recorder.stop_timer()
-                    dpg.set_value("recorder_status", "Error")
+                    self.view.device_panel.recorder.set_recording_active(False)
                     dpg.configure_item("recorder_toggle_btn", label="Start Recording", enabled=True)
-                    dpg.configure_item("recorder_indicator", color=[255, 0, 0, 255], fill=[255, 0, 0, 255])
 
             except queue.Empty:
                 break  # No more ModelManager thread status messages
@@ -547,7 +545,9 @@ class UiPresenter:
 
     def btn_recorder_toggle_cb(self):
         if self.is_recording:
-            dpg.configure_item("recorder_toggle_btn", label="Stopping...", enabled=False)
+            self.view.device_panel.recorder.stop_timer(reset=False)
+            self.view.device_panel.recorder.set_recording_active(False)
+            dpg.configure_item("recorder_toggle_btn", label="Saving...", enabled=False)
             self.ctrl_queues['RECORDER'].put(
                 CtrlMsg(target="RECORDER", action="STOP", data={}).model_dump()
             )
@@ -564,23 +564,15 @@ class UiPresenter:
             return
 
         dpg.configure_item("recorder_toggle_btn", label="Starting...", enabled=False)
-        dpg.set_value("recorder_status", "Starting")
-        dpg.configure_item(
-            "recorder_indicator",
-            color=[255, 200, 0, 255], fill=[255, 200, 0, 255]
-        )
         self.ctrl_queues['RECORDER'].put(
             CtrlMsg(target="RECORDER", action="START", data=recording_data).model_dump()
         )
 
     def _set_recorder_error(self, message):
         self.is_recording = False
-        dpg.set_value("recorder_status", "Error")
+        self.view.device_panel.recorder.stop_timer()
+        self.view.device_panel.recorder.set_recording_active(False)
         dpg.configure_item("recorder_toggle_btn", label="Start Recording", enabled=True)
-        dpg.configure_item(
-            "recorder_indicator",
-            color=[255, 0, 0, 255], fill=[255, 0, 0, 255]
-        )
         current_items = dpg.get_value("log_stream")
         dpg.set_value("log_stream", current_items + f"[RECORDER] ERROR: {message}\n")
     

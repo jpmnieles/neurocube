@@ -28,6 +28,12 @@ class MainView:
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, [210, 70, 70, 255])  # Hover Red
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, [140, 30, 30, 255])   # Click Red
 
+        with dpg.theme(tag="red_btn_dim_theme"):
+            with dpg.theme_component(dpg.mvButton):
+                dpg.add_theme_color(dpg.mvThemeCol_Button, [120, 35, 35, 255])
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, [150, 45, 45, 255])
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, [100, 25, 25, 255])
+
         with dpg.theme(tag="yellow_btn_theme"):
             with dpg.theme_component(dpg.mvButton):
                 dpg.add_theme_color(dpg.mvThemeCol_Button, [170, 125, 0, 255])         # Idle Yellow

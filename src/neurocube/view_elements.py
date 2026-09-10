@@ -1,4 +1,5 @@
 import math
+import time
 import dearpygui.dearpygui as dpg
 from utils import PrecisionTimer
 
@@ -100,10 +101,10 @@ class LabRecorderWidget:
     """Controls LabRecorder metadata and recording state."""
     def __init__(self):
         self.button_tag = "recorder_toggle_btn"
-        self.status = IndicatorStatus("recorder", initial_state="ready")
-        self.status_tag = self.status.status_tag
-        self.indicator_tag = self.status.indicator_tag
         self.timer = None
+        self.recording_active = False
+        self.last_blink_time = 0.0
+        self.blink_on = True
 
     def build(self):
         self.build_metadata()
@@ -134,8 +135,6 @@ class LabRecorderWidget:
             dpg.add_text("00:00:00", tag="recorder_timer_text", pos=(20, 7))
             dpg.bind_item_font("recorder_timer_text", "dynamic_font_16")
 
-        self.status.build()
-
     def start_timer(self):
         if self.timer is not None:
             self.timer.cancel()
@@ -144,11 +143,29 @@ class LabRecorderWidget:
         self.timer.start()
         self.update_timer()
 
-    def stop_timer(self):
+    def set_recording_active(self, active):
+        self.recording_active = active
+        self.blink_on = True
+        self.last_blink_time = time.monotonic()
+        dpg.bind_item_theme(self.button_tag, "red_btn_theme")
+
+    def update_recording_visual(self):
+        if not self.recording_active:
+            return
+
+        now = time.monotonic()
+        if now - self.last_blink_time >= 0.7:
+            self.last_blink_time = now
+            self.blink_on = not self.blink_on
+            theme = "red_btn_theme" if self.blink_on else "red_btn_dim_theme"
+            dpg.bind_item_theme(self.button_tag, theme)
+
+    def stop_timer(self, reset=True):
         if self.timer is not None:
             self.timer.cancel()
         self.timer = None
-        dpg.set_value("recorder_timer_text", "00:00:00")
+        if reset:
+            dpg.set_value("recorder_timer_text", "00:00:00")
 
     def update_timer(self):
         if self.timer is None:
@@ -160,6 +177,17 @@ class LabRecorderWidget:
         dpg.set_value(
             "recorder_timer_text",
             f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+        )
+        self.center_timer_text()
+
+    def center_timer_text(self):
+        box_width, box_height = dpg.get_item_rect_size("recorder_timer_box")
+        text_width, text_height = dpg.get_text_size(
+            dpg.get_value("recorder_timer_text"), font="dynamic_font_16"
+        )
+        dpg.configure_item(
+            "recorder_timer_text",
+            pos=(max(0, (box_width - text_width) / 2), max(0, (box_height - text_height) / 2)),
         )
 
 

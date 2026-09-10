@@ -572,9 +572,9 @@ class ModelManager:
             try:
                 if action == "START":
                     # LSL resolution happens in this thread, off the GUI thread
-                    self.recorder.start_recording(**data)
+                    recording_streams = self.recorder.start_recording(**data)
                     self.status_queue.put(StatusMsg(source=worker_id, state="START_RECORD",
-                                                    message="Recording Streams").model_dump())
+                                                    message=recording_streams).model_dump())
 
                 elif action == "STOP":
                     self.recorder.stop_recording()
@@ -615,10 +615,35 @@ class LabRecorderController:
         filename = f"sub-{subject}_ses-{session}_task-{task}_run-{run}_raw_{timestamp}.xdf"
         self.target_path = subject_dir / filename
         
-        # 4. Start recording to the specified path
+        available_stream_args = []
+        unavailable_streams = []
+        for stream_arg in self.stream_args:
+            stream_name = stream_arg.get("name")
+            try:
+                available = resolve_streams(timeout=0.5, name=stream_name)
+            except Exception:
+                available = []
+
+            if available:
+                available_stream_args.append(stream_arg)
+            else:
+                unavailable_streams.append(stream_name)
+
+        if not available_stream_args:
+            unavailable = ", ".join(unavailable_streams) or "configured streams"
+            raise RuntimeError(f"No configured LSL streams are available ({unavailable})")
+
+        # 4. Start recording only the streams currently available
         self.recording_path = Path(self.lr.start_recording(
-            filename=str(self.target_path), streamargs=self.stream_args
+            filename=str(self.target_path), streamargs=available_stream_args
         ))
+
+        recorded = ", ".join(stream_arg["name"] for stream_arg in available_stream_args)
+        message = f"Recording streams: {recorded}"
+        if unavailable_streams:
+            skipped = ", ".join(unavailable_streams)
+            message += f"; unavailable: {skipped}"
+        return message
 
     def stop_recording(self):
         """Stops the LabRecorder CLI."""
