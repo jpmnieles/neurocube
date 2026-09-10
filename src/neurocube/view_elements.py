@@ -103,8 +103,7 @@ class LabRecorderWidget:
         self.button_tag = "recorder_toggle_btn"
         self.timer = None
         self.recording_active = False
-        self.last_blink_time = 0.0
-        self.blink_on = True
+        self.recording_started_at = 0.0
 
     def build(self):
         self.build_metadata()
@@ -145,20 +144,21 @@ class LabRecorderWidget:
 
     def set_recording_active(self, active):
         self.recording_active = active
-        self.blink_on = True
-        self.last_blink_time = time.monotonic()
+        self.recording_started_at = time.monotonic()
         dpg.bind_item_theme(self.button_tag, "red_btn_theme")
 
     def update_recording_visual(self):
         if not self.recording_active:
             return
 
-        now = time.monotonic()
-        if now - self.last_blink_time >= 0.7:
-            self.last_blink_time = now
-            self.blink_on = not self.blink_on
-            theme = "red_btn_theme" if self.blink_on else "red_btn_dim_theme"
-            dpg.bind_item_theme(self.button_tag, theme)
+        elapsed = time.monotonic() - self.recording_started_at
+        phase = (elapsed * 1.25 * 2 * math.pi) % (2 * math.pi)
+        brightness = 0.55 + 0.45 * (0.5 + 0.5 * math.sin(phase))
+        theme_index = min(31, int((brightness - 0.55) / 0.45 * 31))
+        dpg.bind_item_theme(
+            self.button_tag,
+            f"recording_btn_theme_{theme_index}",
+        )
 
     def stop_timer(self, reset=True):
         if self.timer is not None:

@@ -28,11 +28,22 @@ class MainView:
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, [210, 70, 70, 255])  # Hover Red
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, [140, 30, 30, 255])   # Click Red
 
-        with dpg.theme(tag="red_btn_dim_theme"):
-            with dpg.theme_component(dpg.mvButton):
-                dpg.add_theme_color(dpg.mvThemeCol_Button, [120, 35, 35, 255])
-                dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, [150, 45, 45, 255])
-                dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, [100, 25, 25, 255])
+        for theme_index in range(32):
+            brightness = 0.55 + 0.45 * theme_index / 31
+            with dpg.theme(tag=f"recording_btn_theme_{theme_index}"):
+                with dpg.theme_component(dpg.mvButton):
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_Button,
+                        [int(180 * brightness), int(50 * brightness), int(50 * brightness), 255],
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_ButtonHovered,
+                        [int(210 * brightness), int(70 * brightness), int(70 * brightness), 255],
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_ButtonActive,
+                        [int(140 * brightness), int(30 * brightness), int(30 * brightness), 255],
+                    )
 
         with dpg.theme(tag="yellow_btn_theme"):
             with dpg.theme_component(dpg.mvButton):
