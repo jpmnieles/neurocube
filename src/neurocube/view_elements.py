@@ -399,6 +399,7 @@ class SyncedSlider:
     def build(self):
         container_kwargs = {"parent": self.parent} if self.parent else {}
         
+        container_kwargs["tag"] = f"{self.tag_name}_container"
         with dpg.group(**container_kwargs):
             dpg.add_spacer(height=10)
             

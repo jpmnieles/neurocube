@@ -78,6 +78,13 @@ class PBMWidget:
             max_val=90,
             width=self.slider_width,
         )
+        self.editable_item_tags = [
+            f"{self.tag}_mode_radio",
+            f"{self.intensity_slider.tag_name}_container",
+            f"{self.pulse_freq_slider.tag_name}_container",
+            f"{self.duty_cycle_slider.tag_name}_container",
+            f"{self.duration_slider.tag_name}_container",
+        ]
 
         self.build()
 
@@ -88,10 +95,22 @@ class PBMWidget:
             dpg.add_text("PHOTOBIOMODULATION NEUROSTIMULATION", tag=f"{self.tag}_title")
 
             with dpg.group(horizontal=True):
-                dpg.add_button(label="Start", tag=f"{self.tag}_start_btn", width=80, height=30)
+                dpg.add_button(
+                    label="Start",
+                    tag=f"{self.tag}_start_btn",
+                    width=80,
+                    height=30,
+                    callback=self.start_timer,
+                )
                 dpg.bind_item_theme(item=f"{self.tag}_start_btn", theme="green_btn_theme")
 
-                dpg.add_button(label="Stop", tag=f"{self.tag}_stop_btn", width=80, height=30)
+                dpg.add_button(
+                    label="Stop",
+                    tag=f"{self.tag}_stop_btn",
+                    width=80,
+                    height=30,
+                    callback=self.stop_timer,
+                )
                 dpg.bind_item_theme(item=f"{self.tag}_stop_btn", theme="red_btn_theme")
 
                 # Timer Element
@@ -134,8 +153,33 @@ class PBMWidget:
 
                 dpg.add_spacer(height=2)
                 with dpg.group(horizontal=True):
-                    dpg.add_button(label="Edit", tag=f"{self.tag}_edit_btn", width=80)
-                    dpg.add_button(label="Apply", tag=f"{self.tag}_apply_btn", width=80)
+                    dpg.add_button(
+                        label="Edit",
+                        tag=f"{self.tag}_edit_btn",
+                        width=80,
+                        callback=self.enable_editing,
+                    )
+                    dpg.add_button(
+                        label="Apply",
+                        tag=f"{self.tag}_apply_btn",
+                        width=80,
+                        callback=self.disable_editing,
+                    )
+
+        self.disable_editing()
+
+    def enable_editing(self, sender=None, app_data=None, user_data=None):
+        self.stop_timer()
+        for item_tag in self.editable_item_tags:
+            dpg.configure_item(item_tag, enabled=True)
+        dpg.configure_item(f"{self.tag}_start_btn", enabled=False)
+        dpg.configure_item(f"{self.tag}_stop_btn", enabled=False)
+
+    def disable_editing(self, sender=None, app_data=None, user_data=None):
+        for item_tag in self.editable_item_tags:
+            dpg.configure_item(item_tag, enabled=False)
+        dpg.configure_item(f"{self.tag}_start_btn", enabled=True)
+        dpg.configure_item(f"{self.tag}_stop_btn", enabled=True)
 
     def start_timer(self):
         duration_minutes = dpg.get_value(f"{self.tag}_duration")
