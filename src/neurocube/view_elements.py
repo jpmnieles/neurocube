@@ -2,13 +2,57 @@ import math
 import dearpygui.dearpygui as dpg
 
 
+class IndicatorStatus:
+    """Reusable status label and colored indicator for a controllable component."""
+
+    _STATES = {
+        "disconnected": ("Disconnected", [128, 128, 128, 255]),
+        "ready": ("Ready", [128, 128, 128, 255]),
+        "connected": ("Connected", [0, 255, 0, 255]),
+        "running": ("Running", [0, 255, 0, 255]),
+        "recording": ("Recording", [0, 255, 0, 255]),
+        "starting": ("Starting", [255, 200, 0, 255]),
+        "error": ("Error", [255, 0, 0, 255]),
+    }
+
+    def __init__(self, tag_prefix, initial_state="ready"):
+        self.status_tag = f"{tag_prefix}_status"
+        self.indicator_tag = f"{tag_prefix}_indicator"
+        self.state = initial_state
+
+    def build(self):
+        with dpg.group(horizontal=True):
+            with dpg.drawlist(width=16, height=20):
+                dpg.draw_circle(
+                    center=[8, 10],
+                    radius=5,
+                    color=[128, 128, 128, 255],
+                    fill=[128, 128, 128, 255],
+                    tag=self.indicator_tag,
+                )
+            dpg.add_text(tag=self.status_tag, color=[160, 160, 160])
+
+        self.set_state(self.state)
+
+    def set_state(self, state):
+        """Update the component state and its visible label and indicator."""
+        if state not in self._STATES:
+            raise ValueError(f"Unknown indicator state: {state}")
+
+        label, color = self._STATES[state]
+        self.state = state
+        dpg.set_value(self.status_tag, label)
+        dpg.configure_item(self.indicator_tag, color=color, fill=color)
+
+
 class DeviceBlock:
     """A self-contained hardware control component."""
     def __init__(self, device_name, btn_tag):
         self.device_name = device_name
         self.btn_tag = btn_tag
-        self.status_tag = btn_tag + "_status"
-        self.indicator_tag = btn_tag + "_indicator"
+        self.status = IndicatorStatus(btn_tag, initial_state="disconnected")
+        self.status_tag = self.status.status_tag
+        self.indicator_tag = self.status.indicator_tag
 
     def build(self):
         with dpg.group():
@@ -16,16 +60,7 @@ class DeviceBlock:
             dpg.add_text(self.device_name, color=[255, 255, 255])
             dpg.add_button(label="Start Device", width=-1, tag=self.btn_tag)
             
-            # Status indicator placed cleanly beneath the button
-            with dpg.group(horizontal=True):
-                # Drawlist height set to 20 to cleanly accommodate center tracking at Y=10
-                with dpg.drawlist(width=16, height=20):
-                    dpg.draw_circle(
-                        center=[8, 10], radius=5, 
-                        color=[128, 128, 128, 255], fill=[128, 128, 128, 255], 
-                        tag=self.indicator_tag
-                    )
-                dpg.add_text("Disconnected", color=[160, 160, 160], tag=self.status_tag)
+            self.status.build()
                 
             dpg.add_spacer(height=5)
             dpg.add_separator()
@@ -38,8 +73,9 @@ class ExperimentBlock:
         self.experiments = experiments
         self.combo_tag = combo_tag
         self.btn_tag = "psychopy_run_btn"
-        self.status_tag = "psychopy_status"
-        self.indicator_tag = "psychopy_indicator"
+        self.status = IndicatorStatus("psychopy", initial_state="ready")
+        self.status_tag = self.status.status_tag
+        self.indicator_tag = self.status.indicator_tag
 
     def build(self):
         with dpg.group():
@@ -52,15 +88,7 @@ class ExperimentBlock:
             dpg.add_spacer(height=2)
             dpg.add_button(label="Start Experiment", width=-1, tag=self.btn_tag)
 
-            with dpg.group(horizontal=True):
-                with dpg.drawlist(width=16, height=20):
-                    dpg.draw_circle(
-                        center=[8, 10], radius=5,
-                        color=[128, 128, 128, 255],
-                        fill=[128, 128, 128, 255],
-                        tag=self.indicator_tag,
-                    )
-                dpg.add_text("Ready", color=[160, 160, 160], tag=self.status_tag)
+            self.status.build()
 
             dpg.add_spacer(height=5)
             dpg.add_separator()
@@ -71,8 +99,9 @@ class LabRecorderWidget:
     """Controls LabRecorder metadata and recording state."""
     def __init__(self):
         self.button_tag = "recorder_toggle_btn"
-        self.status_tag = "recorder_status"
-        self.indicator_tag = "recorder_indicator"
+        self.status = IndicatorStatus("recorder", initial_state="ready")
+        self.status_tag = self.status.status_tag
+        self.indicator_tag = self.status.indicator_tag
 
     def build(self):
         dpg.add_text("RECORDING", color=[150, 150, 255])
@@ -91,14 +120,7 @@ class LabRecorderWidget:
         dpg.add_button(label="Start Recording", tag=self.button_tag, height=35, width=-1)
         dpg.bind_item_theme(self.button_tag, "yellow_btn_theme")
 
-        with dpg.group(horizontal=True):
-            with dpg.drawlist(width=16, height=20):
-                dpg.draw_circle(
-                    center=[8, 10], radius=5,
-                    color=[128, 128, 128, 255], fill=[128, 128, 128, 255],
-                    tag=self.indicator_tag
-                )
-            dpg.add_text("Ready", tag=self.status_tag, color=[160, 160, 160])
+        self.status.build()
 
         dpg.add_spacer(height=5)
         dpg.add_separator()
