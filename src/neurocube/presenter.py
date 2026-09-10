@@ -59,6 +59,17 @@ class UiPresenter:
         dpg.set_item_callback("erp_file_dialog", self.erp_file_selected_cb)
         dpg.set_item_callback("erp_load_btn", self.erp_load_cb)
 
+        # PBM Widget
+        pbm_widget = self.view.widgets.widgets["PBM_widget"]
+        dpg.set_item_callback(
+            "PBM_widget_start_btn",
+            lambda sender, app_data, user_data: pbm_widget.start_timer(),
+        )
+        dpg.set_item_callback(
+            "PBM_widget_stop_btn",
+            lambda sender, app_data, user_data: pbm_widget.stop_timer(),
+        )
+
     def setup(self):
         # Start the Model Threads
         self.model.start()
@@ -89,6 +100,8 @@ class UiPresenter:
             self.process_temp_time_series_widget(window_start_time)
             self.process_gsr_time_series_widget(window_start_time)
             self.process_marker_time_series_widget(window_start_time)
+
+            self.view.widgets.widgets["PBM_widget"].update_timer()
             
             dpg.render_dearpygui_frame()  # Throttling based on the Monitor Refresh Rate
 

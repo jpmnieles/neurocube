@@ -3,6 +3,7 @@ from pathlib import Path
 import dearpygui.dearpygui as dpg
 
 import view_elements
+from utils import PrecisionTimer
 
 
 class WidgetManager:
@@ -41,6 +42,8 @@ class PBMWidget:
         self.tag = tag
         self.parent = parent
         self.slider_width = 400
+        self.timer = None
+        self.timer_finished = False
 
         # Sliders
         self.intensity_slider = view_elements.SyncedSlider(
@@ -85,11 +88,26 @@ class PBMWidget:
             dpg.add_text("PHOTOBIOMODULATION NEUROSTIMULATION", tag=f"{self.tag}_title")
 
             with dpg.group(horizontal=True):
-                dpg.add_button(label="Start", tag=f"{self.tag}_start_btn", width=80)
+                dpg.add_button(label="Start", tag=f"{self.tag}_start_btn", width=80, height=30)
                 dpg.bind_item_theme(item=f"{self.tag}_start_btn", theme="green_btn_theme")
 
-                dpg.add_button(label="Stop", tag=f"{self.tag}_stop_btn", width=80)
+                dpg.add_button(label="Stop", tag=f"{self.tag}_stop_btn", width=80, height=30)
                 dpg.bind_item_theme(item=f"{self.tag}_stop_btn", theme="red_btn_theme")
+
+                # Timer Element
+                with dpg.child_window(
+                    tag=f"{self.tag}_timer_box", width=80, height=30,
+                    border=True, no_scrollbar=True
+                ):
+                    dpg.add_text(
+                        "00:00",
+                        tag=f"{self.tag}_timer_text",
+                        pos=(20, 5),
+                    )
+                    dpg.bind_item_font(
+                        f"{self.tag}_timer_text",
+                        "dynamic_font_16",
+                    )
 
             dpg.add_spacer(height=2)
 
@@ -117,6 +135,52 @@ class PBMWidget:
                 dpg.add_spacer(height=2)
 
                 dpg.add_button(label="Apply", tag=f"{self.tag}_apply_btn", width=80)
+
+    def start_timer(self):
+        duration_minutes = dpg.get_value(f"{self.tag}_duration")
+        duration_seconds = float(duration_minutes) * 60.0
+
+        if self.timer is not None:
+            self.timer.cancel()
+
+        self.timer_finished = False
+        self.timer = PrecisionTimer(
+            interval=duration_seconds,
+            function=self._timer_finished,
+        )
+        self.timer.start()
+        self._update_timer_display(duration_seconds)
+
+    def stop_timer(self):
+        if self.timer is not None:
+            self.timer.cancel()
+
+        self.timer = None
+        self.timer_finished = False
+        self._update_timer_display(0.0)
+
+    def update_timer(self):
+        if self.timer is None:
+            return
+
+        remaining_seconds = self.timer.remaining()
+        self._update_timer_display(remaining_seconds)
+
+        if self.timer_finished or remaining_seconds <= 0:
+            self.timer = None
+            self.timer_finished = False
+            self._update_timer_display(0.0)
+
+    def _timer_finished(self):
+        self.timer_finished = True
+
+    def _update_timer_display(self, remaining_seconds):
+        total_seconds = max(0, int(remaining_seconds))
+        minutes, seconds = divmod(total_seconds, 60)
+        dpg.set_value(
+            f"{self.tag}_timer_text",
+            f"{minutes:02d}:{seconds:02d}",
+        )
 
 
 class ERPPlot:
