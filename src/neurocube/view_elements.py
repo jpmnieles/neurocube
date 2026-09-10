@@ -168,23 +168,25 @@ class LabRecorderWidget:
             dpg.set_value("recorder_timer_text", "00:00:00")
 
     def update_timer(self):
-        if self.timer is None:
-            return
-
-        total_seconds = max(0, int(self.timer.elapsed()))
-        hours, remainder = divmod(total_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        dpg.set_value(
-            "recorder_timer_text",
-            f"{hours:02d}:{minutes:02d}:{seconds:02d}",
-        )
+        if self.timer is not None:
+            total_seconds = max(0, int(self.timer.elapsed()))
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            dpg.set_value(
+                "recorder_timer_text",
+                f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+            )
         self.center_timer_text()
 
     def center_timer_text(self):
         box_width, box_height = dpg.get_item_rect_size("recorder_timer_box")
-        text_width, text_height = dpg.get_text_size(
+        text_size = dpg.get_text_size(
             dpg.get_value("recorder_timer_text"), font="dynamic_font_16"
         )
+        if text_size is None:
+            return
+
+        text_width, text_height = text_size
         dpg.configure_item(
             "recorder_timer_text",
             pos=(max(0, (box_width - text_width) / 2), max(0, (box_height - text_height) / 2)),

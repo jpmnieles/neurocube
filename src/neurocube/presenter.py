@@ -484,7 +484,7 @@ class UiPresenter:
                     self.is_recording = True
                     self.view.device_panel.recorder.start_timer()
                     self.view.device_panel.recorder.set_recording_active(True)
-                    dpg.configure_item("recorder_toggle_btn", label="Recording", enabled=True)
+                    dpg.configure_item("recorder_toggle_btn", label="Recording...", enabled=True)
                 elif status_msg['state'] == "STOP_RECORD":
                     self.is_recording = False
                     self.view.device_panel.recorder.stop_timer()
