@@ -122,9 +122,11 @@ class LabRecorderWidget:
         dpg.add_text("Run")
         dpg.add_input_text(tag="recorder_run", default_value="001", width=-1)
 
+        dpg.add_spacer(height=5)
+        dpg.add_separator()
+
     def build_controls(self):
-        dpg.add_spacer(height=10)
-        dpg.add_button(label="Start Recording", tag=self.button_tag, height=35, width=-1)
+        dpg.add_button(label="Start Recording", tag=self.button_tag, height=20, width=-1)
         dpg.bind_item_theme(self.button_tag, "red_btn_theme")
 
         with dpg.child_window(

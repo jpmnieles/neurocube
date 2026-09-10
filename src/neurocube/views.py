@@ -234,14 +234,12 @@ class DevicePanel:
             self.recorder.build_metadata()
             
             # Placeholder for the space
-            with dpg.child_window(height=-400, border=False):
+            with dpg.child_window(height=-97, border=False):
                 pass
 
-            dpg.add_separator()
-
             ### Stream Toggle ###
-            dpg.add_button(label="Pause Stream", tag="stream_toggle_btn", width=-1, height=30)
-
+            dpg.add_spacer(height=5)
+            dpg.add_button(label="Pause Stream", tag="stream_toggle_btn", width=-1, height=20)
             dpg.bind_item_theme(item="stream_toggle_btn", theme="yellow_btn_theme")
 
             ### RECORDING CONTROLS ###
