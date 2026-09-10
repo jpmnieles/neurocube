@@ -214,16 +214,21 @@ class DevicePanel:
             self.experiment.build()
 
             ### RECORDER ###
-            self.recorder.build()
+            self.recorder.build_metadata()
             
             # Placeholder for the space
             with dpg.child_window(height=-400, border=False):
                 pass
 
+            dpg.add_separator()
+
             ### Stream Toggle ###
             dpg.add_button(label="Pause Stream", tag="stream_toggle_btn", width=-1, height=30)
 
             dpg.bind_item_theme(item="stream_toggle_btn", theme="yellow_btn_theme")
+
+            ### RECORDING CONTROLS ###
+            self.recorder.build_controls()
 
 
 class LoggerPanel:

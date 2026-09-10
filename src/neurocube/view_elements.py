@@ -1,5 +1,6 @@
 import math
 import dearpygui.dearpygui as dpg
+from utils import PrecisionTimer
 
 
 class IndicatorStatus:
@@ -102,8 +103,13 @@ class LabRecorderWidget:
         self.status = IndicatorStatus("recorder", initial_state="ready")
         self.status_tag = self.status.status_tag
         self.indicator_tag = self.status.indicator_tag
+        self.timer = None
 
     def build(self):
+        self.build_metadata()
+        self.build_controls()
+
+    def build_metadata(self):
         dpg.add_text("RECORDING", color=[150, 150, 255])
         dpg.add_separator()
 
@@ -116,15 +122,45 @@ class LabRecorderWidget:
         dpg.add_text("Run")
         dpg.add_input_text(tag="recorder_run", default_value="001", width=-1)
 
+    def build_controls(self):
         dpg.add_spacer(height=10)
         dpg.add_button(label="Start Recording", tag=self.button_tag, height=35, width=-1)
-        dpg.bind_item_theme(self.button_tag, "yellow_btn_theme")
+        dpg.bind_item_theme(self.button_tag, "red_btn_theme")
+
+        with dpg.child_window(
+            tag="recorder_timer_box", width=-1, height=35,
+            border=True, no_scrollbar=True,
+        ):
+            dpg.add_text("00:00:00", tag="recorder_timer_text", pos=(20, 7))
+            dpg.bind_item_font("recorder_timer_text", "dynamic_font_16")
 
         self.status.build()
 
-        dpg.add_spacer(height=5)
-        dpg.add_separator()
-        dpg.add_spacer(height=5)
+    def start_timer(self):
+        if self.timer is not None:
+            self.timer.cancel()
+
+        self.timer = PrecisionTimer(interval=24 * 60 * 60)
+        self.timer.start()
+        self.update_timer()
+
+    def stop_timer(self):
+        if self.timer is not None:
+            self.timer.cancel()
+        self.timer = None
+        dpg.set_value("recorder_timer_text", "00:00:00")
+
+    def update_timer(self):
+        if self.timer is None:
+            return
+
+        total_seconds = max(0, int(self.timer.elapsed()))
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        dpg.set_value(
+            "recorder_timer_text",
+            f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+        )
 
 
 class ComboDisplayWidget:

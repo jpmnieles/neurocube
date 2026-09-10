@@ -91,6 +91,7 @@ class UiPresenter:
             self.process_marker_time_series_widget(window_start_time)
 
             self.view.widgets.widgets["PBM_widget"].update_timer()
+            self.view.device_panel.recorder.update_timer()
             
             dpg.render_dearpygui_frame()  # Throttling based on the Monitor Refresh Rate
 
@@ -480,16 +481,19 @@ class UiPresenter:
 
                 if status_msg['state'] == "START_RECORD":
                     self.is_recording = True
+                    self.view.device_panel.recorder.start_timer()
                     dpg.set_value("recorder_status", "Recording")
                     dpg.configure_item("recorder_toggle_btn", label="Stop Recording", enabled=True)
                     dpg.configure_item("recorder_indicator", color=[0, 255, 0, 255], fill=[0, 255, 0, 255])
                 elif status_msg['state'] == "STOP_RECORD":
                     self.is_recording = False
+                    self.view.device_panel.recorder.stop_timer()
                     dpg.set_value("recorder_status", "Ready")
                     dpg.configure_item("recorder_toggle_btn", label="Start Recording", enabled=True)
                     dpg.configure_item("recorder_indicator", color=[128, 128, 128, 255], fill=[128, 128, 128, 255])
                 elif status_msg['state'] == "ERROR":
                     self.is_recording = False
+                    self.view.device_panel.recorder.stop_timer()
                     dpg.set_value("recorder_status", "Error")
                     dpg.configure_item("recorder_toggle_btn", label="Start Recording", enabled=True)
                     dpg.configure_item("recorder_indicator", color=[255, 0, 0, 255], fill=[255, 0, 0, 255])
