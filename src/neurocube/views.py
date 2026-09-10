@@ -220,17 +220,10 @@ class DevicePanel:
             with dpg.child_window(height=-400, border=False):
                 pass
 
-            ### Start and Stop Stream  ###
-            with dpg.table(header_row=False, policy=dpg.mvTable_SizingStretchProp,
-                           borders_innerV=False, borders_outerV=False, height=50):
-                dpg.add_table_column(init_width_or_weight=0.5)
-                dpg.add_table_column(init_width_or_weight=0.5)
-                with dpg.table_row():
-                    dpg.add_button(label="Start\nStream", tag="start_stream_btn", width=-1, height=45)
-                    dpg.add_button(label="Stop\nStream", tag="stop_stream_btn", width=-1, height=45)
+            ### Stream Toggle ###
+            dpg.add_button(label="Pause Stream", tag="stream_toggle_btn", width=-1, height=30)
 
-            dpg.bind_item_theme(item="start_stream_btn", theme="green_btn_theme")
-            dpg.bind_item_theme(item="stop_stream_btn", theme="red_btn_theme")
+            dpg.bind_item_theme(item="stream_toggle_btn", theme="yellow_btn_theme")
 
 
 class LoggerPanel:

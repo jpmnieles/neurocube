@@ -48,8 +48,7 @@ class UiPresenter:
 
     def setup_callbacks(self):
         """Setup Model Callbacks"""
-        dpg.set_item_callback("start_stream_btn", self.btn_start_stream_cb)
-        dpg.set_item_callback("stop_stream_btn", self.btn_stop_stream_cb)
+        dpg.set_item_callback("stream_toggle_btn", self.btn_stream_toggle_cb)
         dpg.set_item_callback("btn_eeg_device_connect", self.btn_eeg_open_device_cb)
         dpg.set_item_callback("btn_emotibit_device_connect", self.btn_emotibit_open_device_cb)
         dpg.set_item_callback("recorder_toggle_btn", self.btn_recorder_toggle_cb)
@@ -521,21 +520,26 @@ class UiPresenter:
 
     ### Callbacks ###
     
-    def btn_start_stream_cb(self):
-        print("[GUI] Clicked Start Stream")
-        self.is_streaming = True
-        self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="START_STREAM").model_dump())
-        self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action="START_STREAM").model_dump())
-        self.ctrl_queues['ANC_INLET'].put(CtrlMsg(target="Multi", action="START_STREAM").model_dump())
-        self.ctrl_queues['MARKER_INLET'].put(CtrlMsg(target="Markers", action="START_STREAM").model_dump())
+    def btn_stream_toggle_cb(self):
+        if self.is_streaming:
+            print("[GUI] Clicked Pause Stream")
+            self.is_streaming = False
+            action = "STOP_STREAM"
+            label = "Start Stream"
+            theme = "green_btn_theme"
+        else:
+            print("[GUI] Clicked Start Stream")
+            self.is_streaming = True
+            action = "START_STREAM"
+            label = "Pause Stream"
+            theme = "yellow_btn_theme"
 
-    def btn_stop_stream_cb(self):
-        print("[GUI] Clicked Stop Stream")
-        self.is_streaming = False
-        self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action="STOP_STREAM").model_dump())
-        self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action="STOP_STREAM").model_dump())
-        self.ctrl_queues['ANC_INLET'].put(CtrlMsg(target="Multi", action="STOP_STREAM").model_dump())
-        self.ctrl_queues['MARKER_INLET'].put(CtrlMsg(target="Markers", action="STOP_STREAM").model_dump())
+        dpg.configure_item("stream_toggle_btn", label=label)
+        dpg.bind_item_theme("stream_toggle_btn", theme)
+        self.ctrl_queues['EEG_INLET_FILTER'].put(CtrlMsg(target="EEG", action=action).model_dump())
+        self.ctrl_queues['PPG_INLET'].put(CtrlMsg(target="PPG", action=action).model_dump())
+        self.ctrl_queues['ANC_INLET'].put(CtrlMsg(target="Multi", action=action).model_dump())
+        self.ctrl_queues['MARKER_INLET'].put(CtrlMsg(target="Markers", action=action).model_dump())
 
     def btn_recorder_toggle_cb(self):
         if self.is_recording:
