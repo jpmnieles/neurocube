@@ -133,8 +133,9 @@ class PBMWidget:
                 self.duration_slider.build()
 
                 dpg.add_spacer(height=2)
-
-                dpg.add_button(label="Apply", tag=f"{self.tag}_apply_btn", width=80)
+                with dpg.group(horizontal=True):
+                    dpg.add_button(label="Edit", tag=f"{self.tag}_edit_btn", width=80)
+                    dpg.add_button(label="Apply", tag=f"{self.tag}_apply_btn", width=80)
 
     def start_timer(self):
         duration_minutes = dpg.get_value(f"{self.tag}_duration")

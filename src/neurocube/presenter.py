@@ -61,14 +61,8 @@ class UiPresenter:
 
         # PBM Widget
         pbm_widget = self.view.widgets.widgets["PBM_widget"]
-        dpg.set_item_callback(
-            "PBM_widget_start_btn",
-            lambda sender, app_data, user_data: pbm_widget.start_timer(),
-        )
-        dpg.set_item_callback(
-            "PBM_widget_stop_btn",
-            lambda sender, app_data, user_data: pbm_widget.stop_timer(),
-        )
+        dpg.set_item_callback("PBM_widget_start_btn", pbm_widget.start_timer())
+        dpg.set_item_callback("PBM_widget_stop_btn", pbm_widget.stop_timer())
 
     def setup(self):
         # Start the Model Threads
