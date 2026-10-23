@@ -16,6 +16,15 @@ class MainView:
                 # Change the cell padding to [X-axis padding, Y-axis padding]
                 dpg.add_theme_style(dpg.mvStyleVar_CellPadding, 5, 0, category=dpg.mvThemeCat_Core)
 
+        dark_purple = [90, 50, 140, 255]
+        with dpg.theme(tag="medical_forms_tab_theme"):
+            with dpg.theme_component(dpg.mvAll):
+                dpg.add_theme_color(dpg.mvThemeCol_TabActive, dark_purple)
+                dpg.add_theme_color(dpg.mvThemeCol_TabUnfocusedActive, dark_purple)
+                dpg.add_theme_color(dpg.mvThemeCol_TabHovered, dark_purple)
+                dpg.add_theme_color(dpg.mvThemeCol_TabSelectedOverline, dark_purple)
+                dpg.add_theme_color(dpg.mvThemeCol_TabDimmedSelectedOverline, dark_purple)
+
         with dpg.theme(tag="green_btn_theme"):
             with dpg.theme_component(dpg.mvButton):
                 dpg.add_theme_color(dpg.mvThemeCol_Button, [40, 150, 80, 255])         # Idle Green
@@ -429,10 +438,11 @@ class MedicalFormsTab:
 
     def build(self):
         with dpg.tab(label="Medical Forms", tag=self.tag):
-            with dpg.child_window(label="Forms", border=False, height=0):
+            with dpg.child_window(label="Forms", border=False, height=0, tag="forms_tab_bar_wrapper"):
                 with dpg.tab_bar(tag="forms_tab_bar"):
                     self.patient_overview_tab.build()
                     self.database_form_tab.build()
+            dpg.bind_item_theme("forms_tab_bar_wrapper", "medical_forms_tab_theme")
 
 
 
