@@ -1,5 +1,50 @@
 import math
+import time
 import dearpygui.dearpygui as dpg
+from utils import PrecisionTimer
+
+
+class IndicatorStatus:
+    """Reusable status label and colored indicator for a controllable component."""
+
+    _STATES = {
+        "disconnected": ("Disconnected", [128, 128, 128, 255]),
+        "ready": ("Ready", [128, 128, 128, 255]),
+        "connected": ("Connected", [0, 255, 0, 255]),
+        "running": ("Running", [0, 255, 0, 255]),
+        "recording": ("Recording", [0, 255, 0, 255]),
+        "starting": ("Starting", [255, 200, 0, 255]),
+        "error": ("Error", [255, 0, 0, 255]),
+    }
+
+    def __init__(self, tag_prefix, initial_state="ready"):
+        self.status_tag = f"{tag_prefix}_status"
+        self.indicator_tag = f"{tag_prefix}_indicator"
+        self.state = initial_state
+
+    def build(self):
+        with dpg.group(horizontal=True):
+            with dpg.drawlist(width=16, height=20):
+                dpg.draw_circle(
+                    center=[8, 10],
+                    radius=5,
+                    color=[128, 128, 128, 255],
+                    fill=[128, 128, 128, 255],
+                    tag=self.indicator_tag,
+                )
+            dpg.add_text(tag=self.status_tag, color=[160, 160, 160])
+
+        self.set_state(self.state)
+
+    def set_state(self, state):
+        """Update the component state and its visible label and indicator."""
+        if state not in self._STATES:
+            raise ValueError(f"Unknown indicator state: {state}")
+
+        label, color = self._STATES[state]
+        self.state = state
+        dpg.set_value(self.status_tag, label)
+        dpg.configure_item(self.indicator_tag, color=color, fill=color)
 
 
 class DeviceBlock:
@@ -7,8 +52,9 @@ class DeviceBlock:
     def __init__(self, device_name, btn_tag):
         self.device_name = device_name
         self.btn_tag = btn_tag
-        self.status_tag = btn_tag + "_status"
-        self.indicator_tag = btn_tag + "_indicator"
+        self.status = IndicatorStatus(btn_tag, initial_state="disconnected")
+        self.status_tag = self.status.status_tag
+        self.indicator_tag = self.status.indicator_tag
 
     def build(self):
         with dpg.group():
@@ -16,20 +62,137 @@ class DeviceBlock:
             dpg.add_text(self.device_name, color=[255, 255, 255])
             dpg.add_button(label="Start Device", width=-1, tag=self.btn_tag)
             
-            # Status indicator placed cleanly beneath the button
-            with dpg.group(horizontal=True):
-                # Drawlist height set to 20 to cleanly accommodate center tracking at Y=10
-                with dpg.drawlist(width=16, height=20):
-                    dpg.draw_circle(
-                        center=[8, 10], radius=5, 
-                        color=[128, 128, 128, 255], fill=[128, 128, 128, 255], 
-                        tag=self.indicator_tag
-                    )
-                dpg.add_text("Disconnected", color=[160, 160, 160], tag=self.status_tag)
+            self.status.build()
                 
             dpg.add_spacer(height=5)
             dpg.add_separator()
             dpg.add_spacer(height=5)
+
+
+class ExperimentBlock:
+    """Experiment selector and process control component."""
+    def __init__(self, experiments, combo_tag="experiment_select"):
+        self.experiments = experiments
+        self.combo_tag = combo_tag
+        self.btn_tag = "psychopy_run_btn"
+        self.status = IndicatorStatus("psychopy", initial_state="ready")
+        self.status_tag = self.status.status_tag
+        self.indicator_tag = self.status.indicator_tag
+
+    def build(self):
+        with dpg.group():
+            dpg.add_combo(
+                items=list(self.experiments),
+                default_value=list(self.experiments)[0],
+                tag=self.combo_tag,
+                width=-1,
+            )
+            dpg.add_spacer(height=2)
+            dpg.add_button(label="Start Experiment", width=-1, tag=self.btn_tag)
+
+            self.status.build()
+
+            dpg.add_spacer(height=5)
+            dpg.add_separator()
+            dpg.add_spacer(height=5)
+
+
+class LabRecorderWidget:
+    """Controls LabRecorder metadata and recording state."""
+    def __init__(self):
+        self.button_tag = "recorder_toggle_btn"
+        self.timer = None
+        self.recording_active = False
+        self.recording_started_at = 0.0
+
+    def build(self):
+        self.build_metadata()
+        self.build_controls()
+
+    def build_metadata(self):
+        dpg.add_text("RECORDING", color=[150, 150, 255])
+        dpg.add_separator()
+
+        dpg.add_text("Subject")
+        dpg.add_input_text(tag="recorder_subject", default_value="S001", width=-1)
+        dpg.add_text("Session")
+        dpg.add_input_text(tag="recorder_session", default_value="DAY1", width=-1)
+        dpg.add_text("Task")
+        dpg.add_input_text(tag="recorder_task", default_value="ERP", width=-1)
+        dpg.add_text("Run")
+        dpg.add_input_text(tag="recorder_run", default_value="001", width=-1)
+
+        dpg.add_spacer(height=5)
+        dpg.add_separator()
+
+    def build_controls(self):
+        dpg.add_button(label="Start Recording", tag=self.button_tag, height=20, width=-1)
+        dpg.bind_item_theme(self.button_tag, "red_btn_theme")
+
+        with dpg.child_window(
+            tag="recorder_timer_box", width=-1, height=35,
+            border=True, no_scrollbar=True,
+        ):
+            dpg.add_text("00:00:00", tag="recorder_timer_text", pos=(20, 7))
+            dpg.bind_item_font("recorder_timer_text", "dynamic_font_16")
+
+    def start_timer(self):
+        if self.timer is not None:
+            self.timer.cancel()
+
+        self.timer = PrecisionTimer(interval=24 * 60 * 60)
+        self.timer.start()
+        self.update_timer()
+
+    def set_recording_active(self, active):
+        self.recording_active = active
+        self.recording_started_at = time.monotonic()
+        dpg.bind_item_theme(self.button_tag, "red_btn_theme")
+
+    def update_recording_visual(self):
+        if not self.recording_active:
+            return
+
+        elapsed = time.monotonic() - self.recording_started_at
+        phase = (elapsed * 1.25 * 2 * math.pi) % (2 * math.pi)
+        brightness = 0.55 + 0.45 * (0.5 + 0.5 * math.sin(phase))
+        theme_index = min(31, int((brightness - 0.55) / 0.45 * 31))
+        dpg.bind_item_theme(
+            self.button_tag,
+            f"recording_btn_theme_{theme_index}",
+        )
+
+    def stop_timer(self, reset=True):
+        if self.timer is not None:
+            self.timer.cancel()
+        self.timer = None
+        if reset:
+            dpg.set_value("recorder_timer_text", "00:00:00")
+
+    def update_timer(self):
+        if self.timer is not None:
+            total_seconds = max(0, int(self.timer.elapsed()))
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            dpg.set_value(
+                "recorder_timer_text",
+                f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+            )
+        self.center_timer_text()
+
+    def center_timer_text(self):
+        box_width, box_height = dpg.get_item_rect_size("recorder_timer_box")
+        text_size = dpg.get_text_size(
+            dpg.get_value("recorder_timer_text"), font="dynamic_font_16"
+        )
+        if text_size is None:
+            return
+
+        text_width, text_height = text_size
+        dpg.configure_item(
+            "recorder_timer_text",
+            pos=(max(0, (box_width - text_width) / 2), max(0, (box_height - text_height) / 2)),
+        )
 
 
 class ComboDisplayWidget:
@@ -37,6 +200,7 @@ class ComboDisplayWidget:
         self.combo_item_list = combo_item_list
         self.widget_list = widget_list
         self.display_tag = display_tag
+        self.selected_value = ''
         self.combo2widget_dict = self._make_combo2widget_map(combo_item_list, widget_list)
         self.widget2combo_dict = self._make_widget2combo_map(widget_list, combo_item_list)
 
@@ -67,6 +231,8 @@ class ComboDisplayWidget:
         app_data: The string value selected in the dropdown (e.g., 'Child Window 4')  # Widget
         user_data: The tag of the parent display window hosting this combo box  # Tag of the Parent
         """
+        self.selected_value = app_data
+        dpg.set_value(sender, app_data)
         chosen_child_tag = self.combo2widget_dict[app_data]
         source_display_tag = dpg.get_item_parent(chosen_child_tag)
         target_display_tag = user_data
@@ -91,6 +257,13 @@ class ComboDisplayWidget:
                         default_value=default_value, width=200)
         if default_value:
             self.dropdown_callback(f"combo_{self.display_tag}", default_value, self.display_tag)
+
+    def activate(self):
+        combo_tag = f"combo_{self.display_tag}"
+        if self.selected_value and not dpg.get_value(combo_tag):
+            self.dropdown_callback(
+                combo_tag, self.selected_value, self.display_tag
+            )
 
 
 class DynamicPlot:
@@ -185,6 +358,35 @@ class UnitChannelPlot:
             dpg.bind_item_theme(series_tag, f"color_{channel_num-1}")
 
 
+class MarkerChannelPlot:
+    def __init__(self, channel_type):
+        self.channel_type = channel_type
+
+    def build(self, channel_num, height):
+        x_axis_tag = f"{self.channel_type}_ch{channel_num}_x_axis"
+        y_axis_tag = f"{self.channel_type}_ch{channel_num}_y_axis"
+        series_tag = f"{self.channel_type}_ch{channel_num}_series"
+        plot_tag = f"{self.channel_type}_ch{channel_num}_plot"
+        group_ch_plot_tag = f"{self.channel_type}_ch{channel_num}_group_ch_plot"
+
+        with dpg.group(horizontal=True, tag=group_ch_plot_tag, height=height):
+            with dpg.child_window(auto_resize_x=True, width=15, height=0,
+                                  border=False, no_scrollbar=True):
+                dpg.add_text(f"{channel_num}")
+
+            with dpg.plot(height=0, width=-1, tag=plot_tag):
+                dpg.add_plot_axis(dpg.mvXAxis, tag=x_axis_tag,
+                                  no_tick_labels=True, no_tick_marks=False,
+                                  no_gridlines=True)
+                dpg.add_plot_axis(dpg.mvYAxis, tag=y_axis_tag,
+                                  no_tick_labels=True, no_tick_marks=False)
+                dpg.add_line_series([], [], parent=y_axis_tag, tag=series_tag)
+                dpg.set_axis_limits(y_axis_tag, -1, 1)
+
+            dpg.bind_item_theme(plot_tag, "plot_theme")
+            dpg.bind_item_theme(series_tag, "color_0")
+
+
 class UnitShadeChannelPlot:
     def __init__(self, channel_type):
         self.channel_type = channel_type
@@ -266,3 +468,65 @@ class AxisOnlyPlot:
                 
                 # Bind transparency layouts to keep workspace completely clean
                 dpg.bind_item_theme(self.plot_tag, "transparent_plot_theme")
+
+
+class SyncedSlider:
+    def __init__(self, tag_name, label, default_value=10, min_val=0, max_val=40, width=350, parent=None):
+        self.tag_name = tag_name
+        self.label = label
+        self.min_val = min_val
+        self.max_val = max_val
+        self.default_value = default_value
+        self.width = width
+        self.parent = parent
+        
+        # Register the shared value using your explicit name
+        with dpg.value_registry():
+            # Check if the tag already exists to prevent crashes
+            if not dpg.does_alias_exist(self.tag_name):
+                dpg.add_int_value(default_value=self.default_value, tag=self.tag_name)
+
+    def build(self):
+        container_kwargs = {"parent": self.parent} if self.parent else {}
+        
+        container_kwargs["tag"] = f"{self.tag_name}_container"
+        with dpg.group(**container_kwargs):
+            dpg.add_spacer(height=10)
+            
+            # Top Row: Table handles perfect flush alignment
+            with dpg.table(header_row=False, width=self.width, 
+                           borders_innerV=False, borders_outerV=False, 
+                           borders_innerH=False, borders_outerH=False):
+                # The first column stretches, pushing the second column to the right
+                dpg.add_table_column(width_stretch=True)
+                # The second column fits exactly to the size of the input box
+                dpg.add_table_column(width_fixed=True)
+                
+                with dpg.table_row():
+                    dpg.add_text(self.label)
+                    # Width adjusted slightly so digits aren't cut off
+                    dpg.add_input_int(width=40, step=0, source=self.tag_name) 
+            
+            # Middle Row: The Slider
+            dpg.add_slider_int(
+                width=self.width, 
+                min_value=self.min_val, 
+                max_value=self.max_val, 
+                format="", 
+                source=self.tag_name
+            )
+            
+            # Bottom Row: Table handles left/right alignment automatically
+            with dpg.table(header_row=False, width=self.width, 
+                           borders_innerV=False, borders_outerV=False, 
+                           borders_innerH=False, borders_outerH=False):
+                dpg.add_table_column(width_stretch=True)
+                dpg.add_table_column(width_fixed=True)
+                
+                with dpg.table_row():
+                    dpg.add_text(str(self.min_val))
+                    dpg.add_text(str(self.max_val))
+
+    def get_value(self):
+        """Retrieve the value using your explicit tag."""
+        return dpg.get_value(self.tag_name)

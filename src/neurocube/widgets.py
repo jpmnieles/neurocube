@@ -1,7 +1,9 @@
 import math
+from pathlib import Path
 import dearpygui.dearpygui as dpg
 
 import view_elements
+from utils import PrecisionTimer
 
 
 class WidgetManager:
@@ -9,21 +11,256 @@ class WidgetManager:
     def __init__(self):
         # Setup Hidden Staging Window
         self.build_hidden_staging_window()
+        base_dir = Path(__file__).resolve().parents[2]
+        recording_root = base_dir / "data"
+        default_erp_path = recording_root if recording_root.exists() else base_dir
 
         # Initialize Widgets
         self.widgets = {
-             "EEG_widget": EEGPlot("EEG_widget", parent="hidden_stage"),
-             "PPG_widget": PPGPlot("PPG_widget", parent="hidden_stage"),
-             "IMU_widget": view_elements.DynamicPlot("IMU_widget", "IMU", 
+            "EEG_widget": EEGPlot("EEG_widget", parent="hidden_stage"),
+            "PPG_widget": PPGPlot("PPG_widget", parent="hidden_stage"),
+            "IMU_widget": view_elements.DynamicPlot("IMU_widget", "IMU", 
                                                      height=0, parent="hidden_stage"),
-             "Temp_widget": TempPlot("Temp_widget", parent="hidden_stage"),
-             "GSR_widget": GSRPlot("GSR_widget", parent="hidden_stage"),
+            "Temp_widget": TempPlot("Temp_widget", parent="hidden_stage"),
+            "GSR_widget": GSRPlot("GSR_widget", parent="hidden_stage"),
+            "Marker_widget": MarkerPlot("Marker_widget", parent="hidden_stage"),
+            "ERP_widget": ERPPlot(
+                "ERP_widget",
+                parent="hidden_stage",
+                default_path=str(default_erp_path),
+            ),
+            "PBM_widget": PBMWidget("PBM_widget", parent="hidden_stage"),
         }
 
     def build_hidden_staging_window(self):
             with dpg.window(tag="hidden_stage", no_move=True, no_resize=True, show=False): 
                 pass
 
+
+class PBMWidget:
+    def __init__(self, tag, parent=0):
+        self.tag = tag
+        self.parent = parent
+        self.slider_width = 400
+        self.timer = None
+        self.timer_finished = False
+
+        # Sliders
+        self.intensity_slider = view_elements.SyncedSlider(
+            tag_name=f"{self.tag}_intensity",
+            label="Intensity (%):",
+            default_value=50,
+            min_val=0,
+            max_val=100,
+            width=self.slider_width,
+        )
+        self.pulse_freq_slider = view_elements.SyncedSlider(
+            tag_name=f"{self.tag}_pulse_freq",
+            label="Pulse Frequency (Hz):",
+            default_value=40,
+            min_val=1,
+            max_val=40,
+            width=self.slider_width,
+        )
+        self.duty_cycle_slider = view_elements.SyncedSlider(
+            tag_name=f"{self.tag}_duty_cycle",
+            label="Duty Cycle (%):",
+            default_value=50,
+            min_val=0,
+            max_val=100,
+            width=self.slider_width,
+        )
+        self.duration_slider = view_elements.SyncedSlider(
+            tag_name=f"{self.tag}_duration",
+            label="Durations (minutes):",
+            default_value=60,
+            min_val=1,
+            max_val=90,
+            width=self.slider_width,
+        )
+        self.editable_item_tags = [
+            f"{self.tag}_mode_radio",
+            f"{self.intensity_slider.tag_name}_container",
+            f"{self.pulse_freq_slider.tag_name}_container",
+            f"{self.duty_cycle_slider.tag_name}_container",
+            f"{self.duration_slider.tag_name}_container",
+        ]
+
+        self.build()
+
+    def build(self):
+        with dpg.child_window(tag=self.tag, border=True, height=0, width=-1, parent=self.parent):
+
+            # First Section
+            dpg.add_text("PHOTOBIOMODULATION NEUROSTIMULATION", tag=f"{self.tag}_title")
+
+            with dpg.group(horizontal=True):
+                dpg.add_button(
+                    label="Start",
+                    tag=f"{self.tag}_start_btn",
+                    width=80,
+                    height=30,
+                    callback=self.start_timer,
+                )
+                dpg.bind_item_theme(item=f"{self.tag}_start_btn", theme="green_btn_theme")
+
+                dpg.add_button(
+                    label="Stop",
+                    tag=f"{self.tag}_stop_btn",
+                    width=80,
+                    height=30,
+                    callback=self.stop_timer,
+                )
+                dpg.bind_item_theme(item=f"{self.tag}_stop_btn", theme="red_btn_theme")
+
+                # Timer Element
+                with dpg.child_window(
+                    tag=f"{self.tag}_timer_box", width=80, height=30,
+                    border=True, no_scrollbar=True
+                ):
+                    dpg.add_text(
+                        "00:00",
+                        tag=f"{self.tag}_timer_text",
+                        pos=(20, 5),
+                    )
+                    dpg.bind_item_font(
+                        f"{self.tag}_timer_text",
+                        "dynamic_font_16",
+                    )
+
+            dpg.add_spacer(height=2)
+
+            # Second Section
+            with dpg.collapsing_header(label="Settings", tag=f"{self.tag}_settings", 
+                                       closable=False, default_open=True, indent=3):
+
+                dpg.add_spacer(height=2)
+
+                with dpg.group(horizontal=True):
+                    dpg.add_text("Mode:")
+                    dpg.add_radio_button(
+                        items=["Continuous Wave", "Pulsed Wave"],
+                        default_value="Pulsed Wave",
+                        tag=f"{self.tag}_mode_radio",
+                        horizontal=True,
+                    )
+
+                # Synced slider definitions
+                self.intensity_slider.build()
+                self.pulse_freq_slider.build()
+                self.duty_cycle_slider.build()
+                self.duration_slider.build()
+
+                dpg.add_spacer(height=2)
+                with dpg.group(horizontal=True):
+                    dpg.add_button(
+                        label="Edit",
+                        tag=f"{self.tag}_edit_btn",
+                        width=80,
+                        callback=self.enable_editing,
+                    )
+                    dpg.add_button(
+                        label="Apply",
+                        tag=f"{self.tag}_apply_btn",
+                        width=80,
+                        callback=self.disable_editing,
+                    )
+
+        self.disable_editing()
+
+    def enable_editing(self, sender=None, app_data=None, user_data=None):
+        self.stop_timer()
+        for item_tag in self.editable_item_tags:
+            dpg.configure_item(item_tag, enabled=True)
+        dpg.configure_item(f"{self.tag}_start_btn", enabled=False)
+        dpg.configure_item(f"{self.tag}_stop_btn", enabled=False)
+
+    def disable_editing(self, sender=None, app_data=None, user_data=None):
+        for item_tag in self.editable_item_tags:
+            dpg.configure_item(item_tag, enabled=False)
+        dpg.configure_item(f"{self.tag}_start_btn", enabled=True)
+        dpg.configure_item(f"{self.tag}_stop_btn", enabled=True)
+
+    def start_timer(self):
+        duration_minutes = dpg.get_value(f"{self.tag}_duration")
+        duration_seconds = float(duration_minutes) * 60.0
+
+        if self.timer is not None:
+            self.timer.cancel()
+
+        self.timer_finished = False
+        self.timer = PrecisionTimer(
+            interval=duration_seconds,
+            function=self._timer_finished,
+        )
+        self.timer.start()
+        self._update_timer_display(duration_seconds)
+
+    def stop_timer(self):
+        if self.timer is not None:
+            self.timer.cancel()
+
+        self.timer = None
+        self.timer_finished = False
+        self._update_timer_display(0.0)
+
+    def update_timer(self):
+        if self.timer is None:
+            return
+
+        remaining_seconds = self.timer.remaining()
+        self._update_timer_display(remaining_seconds)
+
+        if self.timer_finished or remaining_seconds <= 0:
+            self.timer = None
+            self.timer_finished = False
+            self._update_timer_display(0.0)
+
+    def _timer_finished(self):
+        self.timer_finished = True
+
+    def _update_timer_display(self, remaining_seconds):
+        total_seconds = max(0, int(remaining_seconds))
+        minutes, seconds = divmod(total_seconds, 60)
+        dpg.set_value(
+            f"{self.tag}_timer_text",
+            f"{minutes:02d}:{seconds:02d}",
+        )
+
+
+class ERPPlot:
+    def __init__(self, tag, parent=0, default_path=""):
+        self.tag = tag
+        self.parent = parent
+        self.default_path = default_path
+        self.build()
+
+    def build(self):
+        with dpg.child_window(tag=self.tag, border=True, height=0, width=-1, parent=self.parent):
+            with dpg.group(horizontal=True):
+                dpg.add_input_text(tag="erp_file_path", width=-158, hint="Select an XDF file")
+                dpg.add_button(label="Browse", tag="erp_browse_btn", width=70)
+                dpg.add_button(label="Load", tag="erp_load_btn", width=70)
+
+            dpg.add_spacer(height=1)
+
+            with dpg.plot(height=-1, width=-1, tag="erp_plot"):
+                dpg.add_plot_legend()
+                dpg.add_plot_axis(dpg.mvXAxis, label="Time (ms)", tag="erp_x_axis")
+                y_axis = dpg.add_plot_axis(dpg.mvYAxis, label="Amplitude (uV)", tag="erp_y_axis")
+                dpg.add_line_series([], [], label="Target", tag="erp_target_series", parent=y_axis)
+                dpg.add_line_series([], [], label="Standard", tag="erp_standard_series", parent=y_axis)
+
+            with dpg.file_dialog(
+                directory_selector=False,
+                show=False,
+                callback=None,
+                tag="erp_file_dialog",
+                default_path=self.default_path,
+                width=700,
+                height=500,
+            ):
+                dpg.add_file_extension(".xdf", color=(100, 200, 255, 255))
 
 class EEGPlot:
 
@@ -338,4 +575,47 @@ class GSRPlot:
         WINDOW_TIME = self.combo2twindow_dict[app_data]
         channel_num = 2
         dpg.set_axis_limits(f"gsr_ch{channel_num}_x_axis", -WINDOW_TIME  , 0)
-        dpg.set_axis_limits("gsr_static_x_axis", -WINDOW_TIME, 0)    
+        dpg.set_axis_limits("gsr_static_x_axis", -WINDOW_TIME, 0)
+
+
+class MarkerPlot:
+
+    combo2twindow_dict = {
+        "5 sec": 5,
+        "10 sec": 10,
+        "20 sec": 20,
+    }
+
+    def __init__(self, tag, parent=0, height=0):
+        self.tag = tag
+        self.height = height
+        self.parent = parent
+        self.data_text = f"{tag}_data_text"
+        self.marker_plot = view_elements.MarkerChannelPlot("marker")
+        self.build()
+
+    def build(self):
+        with dpg.child_window(tag=self.tag, border=True, height=self.height, width=-1, parent=self.parent):
+            with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit, tag="marker_options_table"):
+                dpg.add_table_column(width_stretch=True)
+                dpg.add_table_column(width_fixed=True)
+                dpg.add_table_column(width_fixed=True)
+                with dpg.table_row():
+                    dpg.add_text("Marker: None", tag=self.data_text)
+                    dpg.add_spacer(height=1)
+                    dpg.add_combo(items=list(self.combo2twindow_dict),
+                                  default_value="5 sec", tag="combo_marker_time_window", width=80,
+                                  callback=self.time_window_callback)
+                    font_size = 20
+                    dpg.bind_item_font(self.data_text, f"dynamic_font_{font_size}")
+
+            dpg.add_spacer(height=1)
+            with dpg.child_window(border=False, tag="marker_plots_parent", height=-45, no_scrollbar=True):
+                self.marker_plot.build(channel_num=1, height=-1)
+            view_elements.AxisOnlyPlot("marker").build()
+            self.time_window_callback(None, "5 sec", None)
+
+    def time_window_callback(self, sender, app_data, user_data):
+        window_time = self.combo2twindow_dict[app_data]
+        dpg.set_axis_limits("marker_ch1_x_axis", -window_time, 0)
+        dpg.set_axis_limits("marker_static_x_axis", -window_time, 0)

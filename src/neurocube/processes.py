@@ -1,6 +1,7 @@
 import time
 import multiprocessing as mp
 import queue
+import importlib
 import numpy as np
 from typing import Any, Optional, Dict
 from datetime import datetime
@@ -22,11 +23,11 @@ class CmdMsg(BaseModel):
     data: Optional[Dict[str, Any]] = None   # Additional parameters (e.g., sample rate, channels)
 
 class StatusMpMsg(BaseModel):
-    source: Literal["EEG", "EMOTIBIT"]
+    source: Literal["EEG", "EMOTIBIT", "PSYCHOPY"]
     state: Literal["OPEN_DEVICE", "CLOSE_DEVICE",
                    "START_STREAM", "STOP_STREAM",
                    "START_RECORD", "STOP_RECORD", 
-                   "IMPEDANCE MODE", "ERROR", "EXIT"]
+                   "IMPEDANCE MODE", "START", "ERROR", "EXIT"]
     message: Optional[str] = None  # Error Trace
     data: Optional[Dict[str, Any]] = None   # Payload (e.g., battery level, impedance values)
 
@@ -83,8 +84,12 @@ def eeg_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
 
         # MNE-LSL Initialization
         LSL_STREAM_NAME = "EEG_Board"
-        outlet_stream = StreamOutlet(StreamInfo(LSL_STREAM_NAME, 'EEG', 
-                                                NUM_EEG_CH, SAMPLING_RATE,'float32', source_id='123'))
+        info_eeg = StreamInfo(
+            LSL_STREAM_NAME, 'EEG', NUM_EEG_CH, SAMPLING_RATE,
+            'float32', source_id='123'
+        )
+        info_eeg.set_channel_names([f"EEG_{channel_num + 1}" for channel_num in range(NUM_EEG_CH)])
+        outlet_stream = StreamOutlet(info_eeg)
         
         while True:
             try:
@@ -239,12 +244,14 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
         # ----- PPG -----#
         LSL_STREAM_NAME_1 = "EMOTIBIT_PPG"
         info_ppg = StreamInfo(LSL_STREAM_NAME_1, "PPG", NUM_PPG_CH, AUX_SAMPLING_RATE, "float32", "emotibit_ppg")
-        info_ppg.set_channel_names(["PPG_Red", "PPG_IR", "PPG_Green"])
+        ppg_names = ["PPG_Red", "PPG_IR", "PPG_Green"][:NUM_PPG_CH]
+        info_ppg.set_channel_names(ppg_names)
         outlet_stream_1 = StreamOutlet(info_ppg)
         # ----- EDA/TEMP -----#
         LSL_STREAM_NAME_2 = "EMOTIBIT_ANC"
         info_anc = StreamInfo(LSL_STREAM_NAME_2, "Multi", NUM_ANC_CH, ANC_SAMPLING_RATE, "float32", "emotibit_anc")
-        info_anc.set_channel_names(["EDA", "TEMP"])
+        anc_names = ["EDA", "TEMP"] + [f"ANC_{channel_num}" for channel_num in range(3, NUM_ANC_CH + 1)]
+        info_anc.set_channel_names(anc_names)
         outlet_stream_2 = StreamOutlet(info_anc)
         
         while True:
@@ -363,3 +370,33 @@ def emotibit_process(cmd_queue: mp.Queue, status_queue: mp.Queue, is_demo):
             pass
         status_queue.put(StatusMpMsg(source=process_id, state="EXIT",
                                    message="Exiting Process").model_dump())
+
+
+def psychopy_process(status_queue: mp.Queue, experiment_module: str = "erp_core"):
+    process_id = "PSYCHOPY"
+    status_queue.put(StatusMpMsg(
+        source=process_id,
+        state="START",
+        message="PsychoPy experiment started"
+    ).model_dump())
+
+    try:
+        package_name = f"{__package__}.exps" if __package__ else "exps"
+        experiment = importlib.import_module(f"{package_name}.{experiment_module}")
+
+        experiment.main()
+    except SystemExit:
+        # PsychoPy uses core.quit(), which raises SystemExit on normal exit.
+        pass
+    except Exception as e:
+        status_queue.put(StatusMpMsg(
+            source=process_id,
+            state="ERROR",
+            message=str(e)
+        ).model_dump())
+    finally:
+        status_queue.put(StatusMpMsg(
+            source=process_id,
+            state="EXIT",
+            message="PsychoPy experiment finished"
+        ).model_dump())
