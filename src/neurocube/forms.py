@@ -130,6 +130,133 @@ class PatientOverviewTab:
                     dpg.add_separator()
                     dpg.add_spacer(height=2)
 
+                    # SECTION: DATABASE AND DATA COLLECTION
+                    with dpg.collapsing_header(label="DATABASE AND DATA COLLECTION", 
+                                                closable=False, default_open=True):
+                        dpg.add_spacer(height=3)
+                        
+                        with dpg.table(header_row=True, borders_innerH=True, borders_outerH=True, 
+                            borders_innerV=True, borders_outerV=True, width=1000,
+                            policy=dpg.mvTable_SizingStretchSame):
+                    
+                            # Add the columns with label
+                            dpg.add_table_column(label="Date Modified", width_fixed=True, init_width_or_weight=140)
+                            dpg.add_table_column(label="Administered by", width_stretch=True)
+                            dpg.add_table_column(label="Encoded By", width_stretch=True)
+
+                            # Add the row contents
+                            ## Row 1
+                            with dpg.table_row():
+                                dpg.add_text("10/23/2026")
+                                dpg.add_text("Dr. First Name Last Name")
+                                dpg.add_text("First Name Last Name")
+
+                        dpg.add_spacer(height=15)
+
+                    # SECTION: MMSE
+                    with dpg.collapsing_header(label="MMSE", 
+                                                closable=False, default_open=True):
+                        dpg.add_spacer(height=3)
+                        
+                        with dpg.table(header_row=True, borders_innerH=True, borders_outerH=True, 
+                            borders_innerV=True, borders_outerV=True, width=1000,
+                            policy=dpg.mvTable_SizingStretchSame):
+                    
+                            # Add the columns with label
+                            dpg.add_table_column(label="Number", width_fixed=True, init_width_or_weight=60)
+                            dpg.add_table_column(label="Date", width_stretch=True)
+                            dpg.add_table_column(label="Score", width_stretch=True)
+                            dpg.add_table_column(label="Administered by", width_stretch=True)
+                            dpg.add_table_column(label="Encoded By", width_stretch=True)
+
+                            # Add the row contents
+                            ## Row 1
+                            with dpg.table_row():
+                                dpg.add_text("1")
+                                dpg.add_text("10/23/2026")
+                                dpg.add_text("25")
+                                dpg.add_text("Dr. First Name Last Name")
+                                dpg.add_text("First Name Last Name")
+
+                        dpg.add_spacer(height=15)
+
+                    # SECTION: MOCA
+                    with dpg.collapsing_header(label="MOCA", 
+                                                closable=False, default_open=True):
+                        dpg.add_spacer(height=3)
+                        
+                        with dpg.table(header_row=True, borders_innerH=True, borders_outerH=True, 
+                            borders_innerV=True, borders_outerV=True, width=1000,
+                            policy=dpg.mvTable_SizingStretchSame):
+                    
+                            # Add the columns with label
+                            dpg.add_table_column(label="Number", width_fixed=True, init_width_or_weight=60)
+                            dpg.add_table_column(label="Date", width_stretch=True)
+                            dpg.add_table_column(label="Score", width_stretch=True)
+                            dpg.add_table_column(label="Administered by", width_stretch=True)
+                            dpg.add_table_column(label="Encoded By", width_stretch=True)
+
+                            # Add the row contents
+                            ## Row 1
+                            with dpg.table_row():
+                                dpg.add_text("1")
+                                dpg.add_text("10/23/2026")
+                                dpg.add_text("25")
+                                dpg.add_text("Dr. First Name Last Name")
+                                dpg.add_text("First Name Last Name")
+
+                        dpg.add_spacer(height=15)
+
+                    # SECTION: USER COMFORT EVALUATION
+                    with dpg.collapsing_header(label="USER COMFORT EVALUATION", 
+                                                closable=False, default_open=True):
+                        dpg.add_spacer(height=3)
+                        
+                        with dpg.table(header_row=True, borders_innerH=True, borders_outerH=True, 
+                            borders_innerV=True, borders_outerV=True, width=1000,
+                            policy=dpg.mvTable_SizingStretchSame):
+                    
+                            # Add the columns with label
+                            dpg.add_table_column(label="Number", width_fixed=True, init_width_or_weight=60)
+                            dpg.add_table_column(label="Date", width_stretch=True)
+                            dpg.add_table_column(label="Administered by", width_stretch=True)
+                            dpg.add_table_column(label="Encoded By", width_stretch=True)
+
+                            # Add the row contents
+                            ## Row 1
+                            with dpg.table_row():
+                                dpg.add_text("1")
+                                dpg.add_text("10/23/2026")
+                                dpg.add_text("Dr. First Name Last Name")
+                                dpg.add_text("First Name Last Name")
+
+                        dpg.add_spacer(height=15)
+
+                    # SECTION: INCIDENT REPORT
+                    with dpg.collapsing_header(label="INCIDENT REPORT", 
+                                                closable=False, default_open=True):
+                        dpg.add_spacer(height=3)
+                        
+                        with dpg.table(header_row=True, borders_innerH=True, borders_outerH=True, 
+                            borders_innerV=True, borders_outerV=True, width=1000,
+                            policy=dpg.mvTable_SizingStretchSame):
+                    
+                            # Add the columns with label
+                            dpg.add_table_column(label="Number", width_fixed=True, init_width_or_weight=60)
+                            dpg.add_table_column(label="Date", width_stretch=True)
+                            dpg.add_table_column(label="Medical OIC", width_stretch=True)
+                            dpg.add_table_column(label="Encoded By", width_stretch=True)
+
+                            # Add the row contents
+                            ## Row 1
+                            with dpg.table_row():
+                                dpg.add_text("1")
+                                dpg.add_text("10/23/2026")
+                                dpg.add_text("Dr. First Name Last Name")
+                                dpg.add_text("First Name Last Name")
+
+                        dpg.add_spacer(height=15)
+
 
 class DatabaseFormTab:
 
