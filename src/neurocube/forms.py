@@ -17,8 +17,13 @@ class DatePickerField:
         }
 
     def build(self):
+        self.build_input()
+        self.build_popup()
+
+    def build_input(self):
         with dpg.group(horizontal=True):
-            dpg.add_text(f"{self.label}: ")
+            if self.label:
+                dpg.add_text(f"{self.label}: ")
             dpg.add_input_text(
                 tag=self.input_tag,
                 default_value=self.default_value,
@@ -26,6 +31,14 @@ class DatePickerField:
                 width=80,
             )
 
+        with dpg.item_handler_registry() as handler_registry:
+            dpg.add_item_clicked_handler(
+                dpg.mvMouseButton_Left,
+                callback=self._position_popup,
+            )
+        dpg.bind_item_handler_registry(self.input_tag, handler_registry)
+
+    def build_popup(self):
         with dpg.window(
             tag=self.popup_tag,
             popup=True,
@@ -40,13 +53,6 @@ class DatePickerField:
                 default_value=self.today_dict,
                 callback=self.callback,
             )
-
-        with dpg.item_handler_registry() as handler_registry:
-            dpg.add_item_clicked_handler(
-                dpg.mvMouseButton_Left,
-                callback=self._position_popup,
-            )
-        dpg.bind_item_handler_registry(self.input_tag, handler_registry)
 
     def _position_popup(self, sender, app_data, user_data):
         x, y = dpg.get_item_rect_min(self.input_tag)
@@ -266,6 +272,10 @@ class DatabaseFormTab:
             f"{self.tag}_enrollment",
             "Date of Enrollment",
         )
+        self.session_dates = [
+            DatePickerField(f"{self.tag}_session_{session}_date", "")
+            for session in range(1, 6)
+        ]
 
     def build(self):
         with dpg.tab(label="Database Form"):
@@ -389,31 +399,46 @@ class DatabaseFormTab:
                             ## Row 1
                             with dpg.table_row(height=10):
                                 dpg.add_text("Diagnosed with MCI or early-stage dementia?")
-                                dpg.add_input_text(width=-1, multiline=True)
+                                dpg.add_radio_button(
+                                    items=["Yes", "No", "N/A"],
+                                    horizontal=True,
+                                )
                                 dpg.add_input_text(width=-1, multiline=True)
 
                             ## Row 2
                             with dpg.table_row(height=10):
                                 dpg.add_text("History of stroke/TBI/epilepsy")
-                                dpg.add_input_text(width=-1, multiline=True)
+                                dpg.add_radio_button(
+                                    items=["Yes", "No", "N/A"],
+                                    horizontal=True,
+                                )
                                 dpg.add_input_text(width=-1, multiline=True)
 
                             ## Row 3
                             with dpg.table_row(height=10):
                                 dpg.add_text("Visual or auditory impairment")
-                                dpg.add_input_text(width=-1, multiline=True)
+                                dpg.add_radio_button(
+                                    items=["Yes", "No", "N/A"],
+                                    horizontal=True,
+                                )
                                 dpg.add_input_text(width=-1, multiline=True)
 
                             ## Row 4
                             with dpg.table_row(height=10):
                                 dpg.add_text("Using pacemaker or implanted devices")
-                                dpg.add_input_text(width=-1, multiline=True)
+                                dpg.add_radio_button(
+                                    items=["Yes", "No", "N/A"],
+                                    horizontal=True,
+                                )
                                 dpg.add_input_text(width=-1, multiline=True)
 
                             ## Row 5
                             with dpg.table_row(height=10):
                                 dpg.add_text("Taking psychoactive  medications")
-                                dpg.add_input_text(width=-1, multiline=True)
+                                dpg.add_radio_button(
+                                    items=["Yes", "No", "N/A"],
+                                    horizontal=True,
+                                )
                                 dpg.add_input_text(width=-1, multiline=True)
 
                     dpg.add_spacer(height=15)
@@ -438,47 +463,50 @@ class DatabaseFormTab:
                             ## Row 1
                             with dpg.table_row(height=10):
                                 dpg.add_text("1")
+                                self.session_dates[0].build_input()
                                 dpg.add_input_text(width=-1, multiline=True)
                                 dpg.add_input_text(width=-1, multiline=True)
-                                dpg.add_input_text(width=-1, multiline=True)
-                                dpg.add_input_text(width=-1, multiline=True)
+                                dpg.add_radio_button(items=["Yes", "No"], horizontal=True)
                                 dpg.add_input_text(width=-1, multiline=True)
 
                             ## Row 2
                             with dpg.table_row(height=10):
                                 dpg.add_text("2")
+                                self.session_dates[1].build_input()
                                 dpg.add_input_text(width=-1, multiline=True)
                                 dpg.add_input_text(width=-1, multiline=True)
-                                dpg.add_input_text(width=-1, multiline=True)
-                                dpg.add_input_text(width=-1, multiline=True)
+                                dpg.add_radio_button(items=["Yes", "No"], horizontal=True)
                                 dpg.add_input_text(width=-1, multiline=True)
 
                             ## Row 3
                             with dpg.table_row(height=10):
                                 dpg.add_text("3")
+                                self.session_dates[2].build_input()
                                 dpg.add_input_text(width=-1, multiline=True)
                                 dpg.add_input_text(width=-1, multiline=True)
-                                dpg.add_input_text(width=-1, multiline=True)
-                                dpg.add_input_text(width=-1, multiline=True)
+                                dpg.add_radio_button(items=["Yes", "No"], horizontal=True)
                                 dpg.add_input_text(width=-1, multiline=True)
 
                             ## Row 4
                             with dpg.table_row(height=10):
                                 dpg.add_text("4")
+                                self.session_dates[3].build_input()
                                 dpg.add_input_text(width=-1, multiline=True)
                                 dpg.add_input_text(width=-1, multiline=True)
-                                dpg.add_input_text(width=-1, multiline=True)
-                                dpg.add_input_text(width=-1, multiline=True)
+                                dpg.add_radio_button(items=["Yes", "No"], horizontal=True)
                                 dpg.add_input_text(width=-1, multiline=True)
 
                             ## Row 5
                             with dpg.table_row(height=10):
                                 dpg.add_text("5")
+                                self.session_dates[4].build_input()
                                 dpg.add_input_text(width=-1, multiline=True)
                                 dpg.add_input_text(width=-1, multiline=True)
+                                dpg.add_radio_button(items=["Yes", "No"], horizontal=True)
                                 dpg.add_input_text(width=-1, multiline=True)
-                                dpg.add_input_text(width=-1, multiline=True)
-                                dpg.add_input_text(width=-1, multiline=True)
+
+                        for session_date in self.session_dates:
+                            session_date.build_popup()
 
                     dpg.add_spacer(height=15)
                     
